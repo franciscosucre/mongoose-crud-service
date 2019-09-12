@@ -1,0 +1,32 @@
+{
+  "linterOptions": {
+    "exclude": ["dist", "package*.json"]
+  },
+  "defaultSeverity": "error",
+  "extends": ["tslint:recommended", "tslint-sonarts"],
+  "jsRules": {
+    "no-unused-expression": true
+  },
+  "rules": {
+    "cognitive-complexity": [true, 16],
+    "eofline": false,
+    "ban-types": false,
+    "forin": false,
+    "quotemark": { "options": "single" },
+    "indent": false,
+    "member-access": [false],
+    "ordered-imports": { "options": { "grouped-imports": true } },
+    "max-line-length": { "options": { "limit": 150 } },
+    "member-ordering": { "options": { "alphabetize": true, "order": "instance-sandwich" } },
+    "object-literal-sort-keys": false,
+    "no-return-await": true,
+    "curly": false,
+    "interface-name": [false],
+    "array-type": [false],
+    "no-empty-interface": false,
+    "no-empty": false,
+    "variable-name": { "options": ["allow-leading-underscore", "allow-pascal-case"] },
+    "object-literal-key-quotes": { "options": "as-needed" }
+  },
+  "rulesDirectory": []
+}
