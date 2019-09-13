@@ -424,7 +424,7 @@ describe('GenericMongooseCrudService', () => {
 
       it('should patch the subdocument', async () => {
         const sub: ITestSubDataModel = faker.random.arrayElement(instance.subs);
-        const receivedRep: ITestSubDataModel  = await service.patchSubdocumentById<ITestSubData>(
+        const receivedRep: ITestSubDataModel = await service.patchSubdocumentById<ITestSubData>(
           instance._id,
           subdocumentField,
           sub._id,
