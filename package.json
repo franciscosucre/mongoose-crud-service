@@ -1,8 +1,8 @@
 {
-  "name": "asisa-dental-appointments-api",
-  "displayName": "ASISA Dental - Auth API",
+  "name": "@aluxion-nestjs/mongoose-crud-service",
+  "displayName": "Mongoose CRUD Service",
   "version": "0.0.1",
-  "description": "Authentication and Authorization",
+  "description": "A customizable service that implements top level CRUD operations as well as one-level nested CRUD operations",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
