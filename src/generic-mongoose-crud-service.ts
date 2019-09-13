@@ -9,29 +9,38 @@ import { IDynamicObject, IGenericMongooseCrudServiceOptions, IMongoDocument } fr
 
 export class GenericMongooseCrudService<T extends IModelInstance> {
   public readonly events: EventEmitter = new EventEmitter();
-  protected readonly eventsCreate: string = 'GENERIC_CREATED';
-  protected readonly eventsDelete: string = 'GENERIC_DELETED';
-  protected readonly eventsPatch: string = 'GENERIC_UPDATED';
+  protected readonly eventsCreate: string;
+  protected readonly eventsDelete: string;
+  protected readonly eventsPatch: string;
   protected readonly model: Model<T & IMongoDocument>;
   protected readonly modelName: string = 'GENERIC';
 
   constructor(options: IGenericMongooseCrudServiceOptions<T & IMongoDocument> = {}) {
+    this.model = options.model ? options.model : this.model;
+    this.modelName = options.modelName ? options.modelName : this.model.modelName;
+
     if (options.eventsCreate) {
       this.eventsCreate = options.eventsCreate;
+    } else {
+      if (!this.eventsCreate) {
+        this.eventsCreate = `${this.modelName.toUpperCase()}_CREATED`;
+      }
     }
-    if (options.eventsDelete) {
-      this.eventsDelete = options.eventsDelete;
-    }
+
     if (options.eventsPatch) {
       this.eventsPatch = options.eventsPatch;
-    }
-    if (options.model) {
-      this.model = options.model;
-    }
-    if (options.modelName) {
-      this.modelName = options.modelName;
     } else {
-      this.modelName = this.model.modelName;
+      if (!this.eventsPatch) {
+        this.eventsPatch = `${this.modelName.toUpperCase()}_UPDATED`;
+      }
+    }
+
+    if (options.eventsDelete) {
+      this.eventsDelete = options.eventsDelete;
+    } else {
+      if (!this.eventsDelete) {
+        this.eventsDelete = `${this.modelName.toUpperCase()}_DELETED`;
+      }
     }
   }
 
