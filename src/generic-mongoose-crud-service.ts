@@ -186,24 +186,21 @@ export class GenericMongooseCrudService<T extends IModelInstance> {
     update: any,
     user: any,
   ): Promise<Subdocument & IMongoDocument> {
-    const embedUpdate = Object.keys(update).reduce((result, key) => {
-      result[`${subdocumentField}.$.${key}`] = update[key];
-      return result;
-    }, {});
     const conditions = Object.keys(filter).reduce(
       (result, key) => {
         result[`${subdocumentField}.${key}`] = filter[key];
         return result;
       },
-      { _id: new mongo.ObjectId(parentId), deleted: false, [`${subdocumentField}.deleted`]: false },
+      { _id: new ObjectId(parentId), deleted: false, [`${subdocumentField}.deleted`]: false },
     );
     const subdocument = await this.getSubdocument(parentId, subdocumentField, filter);
     if (!subdocument) {
       throw new ResourceNotFoundException(subdocumentField, JSON.stringify(conditions));
     }
-    const newParent = await this.patch(conditions, embedUpdate, user);
-    const updatedSubDocument = (newParent[subdocumentField] as Types.DocumentArray<Subdocument & IMongoDocument>).id(subdocument._id);
-    return updatedSubDocument;
+    this.merge(subdocument, Object.assign(this.getDefaultUpdate(user), update));
+    await subdocument.save();
+    await this.patch({ _id: new ObjectId(parentId) }, this.getDefaultUpdate(user), user);
+    return subdocument as Subdocument & IMongoDocument;
   }
 
   async patchSubdocumentById<Subdocument extends IModelInstance>(
@@ -257,8 +254,16 @@ export class GenericMongooseCrudService<T extends IModelInstance> {
 
   private getDefaultUpdate(user: any): IDynamicObject {
     return {
-      
+      updatedAt: this.now(),
+      updatedBy: user,
     };
+  }
+
+  private merge(doc: IMongoDocument, newDoc: Partial<T & IMongoDocument>): IMongoDocument {
+    for (const key of Object.keys(newDoc)) {
+      doc.set(key, newDoc[key]);
+    }
+    return doc;
   }
 
   private now(): Date {
