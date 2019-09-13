@@ -30,6 +30,8 @@ export class GenericMongooseCrudService<T extends IModelInstance> {
     }
     if (options.modelName) {
       this.modelName = options.modelName;
+    } else {
+      this.modelName = this.model.modelName;
     }
   }
 
