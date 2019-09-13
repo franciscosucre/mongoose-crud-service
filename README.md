@@ -42,9 +42,11 @@ export interface IGenericMongooseCrudServiceOptions<T extends IMongoDocument> {
 ### **NestJS Examples**
 
 ```typescript
-```
-
-```typescript
+@Injectable()
+export class UsersService extends GenericMongooseCrudService<IUser> {
+  eventEmitter: EventEmitter = new EventEmitter();
+  @InjectModel(USER_MODEL_NAME) private readonly userModel: Model<IUserModel>;
+}
 ```
 
 ### **Timestamped**
@@ -99,4 +101,39 @@ The service supports the same operations of top level documents for subdocuments
 
 ### **Extension through events**
 
-Each of the write operations has an event that can be listened to in order to react o extend this operations. As an example, you could want to log each time an object is created. This is for event-based development. The name of the events can be customizable.
+Each of the write operations has an event that can be listened to in order to react o extend this operations. As an example, you could want to log each time an object is created. This is for event-based development. The name of the events can be customizable. The event emitter can be accessed through the **events** property. The event receives the modified/created document.
+
+```typescript
+usersService.eventEmitter.on(eventName, async (data: IUserModel) => {
+    // Do something
+});
+```
+
+## **Methods**
+
+The service has methods for documents and first-level subdocuments (Deeply nested subdocuments is not supported). Most methods are aliases of other methods, like the ById kind that will call the basic method with an objectId in the query.
+
+```typescript
+export declare class GenericMongooseCrudService<T extends IModelInstance> {
+    addSubdocument<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, subdocument: any, user: any): Promise<Subdocument>;
+    count(filter?: IDynamicObject): Promise<number>;
+    countSubdocuments(parentId: string, subdocumentField: string, filter?: IDynamicObject): Promise<number>;
+    create(data: Partial<T>, user: any): Promise<T & IMongoDocument>;
+    getById(_id: string, projection?: string): Promise<T & IMongoDocument>;
+    getSubdocument<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, filter?: IDynamicObject): Promise<Subdocument & IMongoDocument>;
+    getSubdocumentById<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, subdocumentId: string): Promise<Subdocument & IMongoDocument>;
+    hardDelete(_id: string): Promise<T & IMongoDocument>;
+    hardDeleteSubdocument(parentId: string, subdocumentField: string, subdocumentId: string, user: any): Promise<T & IMongoDocument>;
+    list(filter?: IDynamicObject, limit?: number, skip?: number, projection?: string, sort?: ISortOptions): Promise<Array<T & IMongoDocument>>;
+    listSubdocuments<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, filter?: IDynamicObject, limit?: number, skip?: number, sort?: ISortOptions): Promise<Array<Subdocument & IMongoDocument>>;
+    patch(filter: IDynamicObject, update: IDynamicObject, user: any): Promise<T & IMongoDocument>;
+    patchById(_id: string, update: any, user: any): Promise<T & IMongoDocument>;
+    patchSubdocument<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, filter: IDynamicObject, update: any, user: any): Promise<Subdocument & IMongoDocument>;
+    patchSubdocumentById<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, subdocumentId: string, update: any, user: any): Promise<Subdocument & IMongoDocument>;
+    softDelete(_id: string, user: any): Promise<T & IMongoDocument>;
+    softDeleteSubdocument<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, subdocumentId: string, user: any): Promise<Subdocument & IMongoDocument>;
+    update(filter: IDynamicObject, update: IDynamicObject, user: any): Promise<T & IMongoDocument>;
+    updateById(_id: string, update: IDynamicObject, user: any): Promise<T & IMongoDocument>;
+}
+
+```

@@ -253,7 +253,7 @@ export class GenericMongooseCrudService<T extends IModelInstance> {
     return this.update({ _id: new ObjectId(_id) }, update, user);
   }
 
-  private formatQueryForAggregation(input: IDynamicObject, field: string): IDynamicObject {
+  protected formatQueryForAggregation(input: IDynamicObject, field: string): IDynamicObject {
     const result = {};
     for (const key in input) {
       if (input.hasOwnProperty(key)) {
@@ -263,21 +263,21 @@ export class GenericMongooseCrudService<T extends IModelInstance> {
     return result;
   }
 
-  private getDefaultUpdate(user: any): IDynamicObject {
+  protected getDefaultUpdate(user: any): IDynamicObject {
     return {
       updatedAt: this.now(),
       updatedBy: user,
     };
   }
 
-  private merge(doc: IMongoDocument, newDoc: Partial<T & IMongoDocument>): IMongoDocument {
+  protected merge(doc: IMongoDocument, newDoc: Partial<T & IMongoDocument>): IMongoDocument {
     for (const key of Object.keys(newDoc)) {
       doc.set(key, newDoc[key]);
     }
     return doc;
   }
 
-  private now(): Date {
+  protected now(): Date {
     return moment.utc().toDate();
   }
 }
