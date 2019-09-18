@@ -88,7 +88,7 @@ describe('GenericMongooseCrudService', () => {
     const mongoUri = mongoUnit.getUrl();
     await mongoose.connect(mongoUri, opts);
     model = mongoose.model(MODEL_NAME, new mongoose.Schema(schemaDefinition));
-    service = new GenericMongooseCrudService<ITestData, ITestDataModel>({ model, modelName: MODEL_NAME });
+    service = new GenericMongooseCrudService<ITestData, ITestDataModel>(model);
     return;
   });
 

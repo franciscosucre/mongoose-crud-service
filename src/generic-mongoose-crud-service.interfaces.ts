@@ -25,14 +25,6 @@ export interface IModelInstance extends IMongoIdentified, ITimestamped, ISoftDel
 
 export interface IMongoDocument extends Document, IModelInstance {}
 
-export interface IGenericMongooseCrudServiceOptions<T extends IMongoDocument> {
-  eventsCreate?: string;
-  eventsDelete?: string;
-  eventsPatch?: string;
-  model?: Model<T>;
-  modelName?: string;
-}
-
 export interface ISortOptions {
   [key: string]: -1 | 1;
 }

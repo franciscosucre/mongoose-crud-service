@@ -4,48 +4,18 @@ import { EventEmitter } from 'events';
 import * as moment from 'moment';
 import { Model, mongo } from 'mongoose';
 
-import {
-  IDynamicObject,
-  IGenericMongooseCrudServiceOptions,
-  IModelInstance,
-  IMongoDocument,
-  ISortOptions,
-} from './generic-mongoose-crud-service.interfaces';
+import { IDynamicObject, IModelInstance, IMongoDocument, ISortOptions } from './generic-mongoose-crud-service.interfaces';
 
 export class GenericMongooseCrudService<T extends IModelInstance, M extends T & IMongoDocument> {
   public readonly events: EventEmitter = new EventEmitter();
-  protected readonly eventsCreate: string;
-  protected readonly eventsDelete: string;
-  protected readonly eventsPatch: string;
+  protected readonly eventsCreate: string = 'CREATED';
+  protected readonly eventsDelete: string = 'DELETED';
+  protected readonly eventsPatch: string = 'PATCH';
   protected readonly model: Model<M>;
-  protected readonly modelName: string = 'GENERIC';
 
-  constructor(options: IGenericMongooseCrudServiceOptions<M> = {}) {
-    this.model = options.model ? options.model : this.model;
-    this.modelName = options.modelName ? options.modelName : this.model.modelName;
-
-    if (options.eventsCreate) {
-      this.eventsCreate = options.eventsCreate;
-    } else {
-      if (!this.eventsCreate) {
-        this.eventsCreate = `${this.modelName.toUpperCase()}_CREATED`;
-      }
-    }
-
-    if (options.eventsPatch) {
-      this.eventsPatch = options.eventsPatch;
-    } else {
-      if (!this.eventsPatch) {
-        this.eventsPatch = `${this.modelName.toUpperCase()}_UPDATED`;
-      }
-    }
-
-    if (options.eventsDelete) {
-      this.eventsDelete = options.eventsDelete;
-    } else {
-      if (!this.eventsDelete) {
-        this.eventsDelete = `${this.modelName.toUpperCase()}_DELETED`;
-      }
+  constructor(model?: Model<M>) {
+    if (model) {
+      this.model = model;
     }
   }
 
@@ -64,7 +34,7 @@ export class GenericMongooseCrudService<T extends IModelInstance, M extends T & 
   async countSubdocuments(parentId: string, subdocumentField: string, filter: IDynamicObject = {}) {
     const matches = await this.model.countDocuments({ _id: parentId, deleted: false }).exec();
     if (matches <= 0) {
-      throw new ResourceNotFoundException(this.modelName, parentId);
+      throw new ResourceNotFoundException(this.model.modelName, parentId);
     }
     if (filter.deleted === undefined) {
       filter.deleted = false;
@@ -99,7 +69,7 @@ export class GenericMongooseCrudService<T extends IModelInstance, M extends T & 
     const conditions = Object.assign({ deleted: false }, filter);
     const instance = await this.model.findOne(conditions, projection).exec();
     if (!instance) {
-      throw new ResourceNotFoundException(this.modelName, JSON.stringify(conditions));
+      throw new ResourceNotFoundException(this.model.modelName, JSON.stringify(conditions));
     }
     return instance;
   }
@@ -126,7 +96,7 @@ export class GenericMongooseCrudService<T extends IModelInstance, M extends T & 
       )
       .exec();
     if (!instance) {
-      throw new ResourceNotFoundException(this.modelName, parentId);
+      throw new ResourceNotFoundException(this.model.modelName, parentId);
     }
     return instance[subdocumentField].pop() as Subdocument & IMongoDocument;
   }
@@ -169,7 +139,7 @@ export class GenericMongooseCrudService<T extends IModelInstance, M extends T & 
     const transformedFilter = this.formatQueryForAggregation(filter, subdocumentField);
     const matches = await this.model.countDocuments({ _id: parentId, deleted: false }).exec();
     if (matches <= 0) {
-      throw new ResourceNotFoundException(this.modelName, parentId);
+      throw new ResourceNotFoundException(this.model.modelName, parentId);
     }
     const expression = `$${subdocumentField}`;
     const aggregration: T[] = await this.model
@@ -253,7 +223,7 @@ export class GenericMongooseCrudService<T extends IModelInstance, M extends T & 
     const conditions = Object.assign({ deleted: false }, filter);
     const instance = await this.model.findOneAndUpdate(conditions, update, { new: true }).exec();
     if (!instance) {
-      throw new ResourceNotFoundException(this.modelName, JSON.stringify(conditions));
+      throw new ResourceNotFoundException(this.model.modelName, JSON.stringify(conditions));
     }
     this.events.emit(this.eventsPatch, instance);
     return instance;
