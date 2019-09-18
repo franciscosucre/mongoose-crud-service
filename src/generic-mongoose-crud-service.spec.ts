@@ -23,6 +23,7 @@ interface ITestData extends IModelInstance {
 
 interface ITestDataModel extends ITestData, IMongoDocument {
   subs: mongoose.Types.DocumentArray<ITestSubDataModel>;
+  instanceMethod(): any;
 }
 
 const generateTestSubData = (data: Partial<ITestSubData> = {}): ITestSubData => {
@@ -73,7 +74,13 @@ const schemaDefinition: mongoose.SchemaDefinition = Object.assign<mongoose.Schem
 const MODEL_NAME = 'TestModel';
 const opts: mongoose.ConnectionOptions = { useNewUrlParser: true, useFindAndModify: false, useCreateIndex: true, useUnifiedTopology: true };
 let model: mongoose.Model<ITestDataModel>;
-let service: GenericMongooseCrudService<ITestData>;
+let service: GenericMongooseCrudService<ITestData, ITestDataModel>;
+
+class TestDataService extends GenericMongooseCrudService<ITestData, ITestDataModel> {
+  create(data, user): Promise<ITestDataModel> {
+    return super.create(data, user);
+  }
+}
 
 describe('GenericMongooseCrudService', () => {
   beforeAll(async () => {
@@ -81,7 +88,7 @@ describe('GenericMongooseCrudService', () => {
     const mongoUri = mongoUnit.getUrl();
     await mongoose.connect(mongoUri, opts);
     model = mongoose.model(MODEL_NAME, new mongoose.Schema(schemaDefinition));
-    service = new GenericMongooseCrudService<ITestData>({ model, modelName: MODEL_NAME });
+    service = new GenericMongooseCrudService<ITestData, ITestDataModel>({ model, modelName: MODEL_NAME });
     return;
   });
 

@@ -2,20 +2,25 @@ import { ResourceNotFoundException } from '@aluxion-nestjs/exceptions';
 import { ObjectId } from 'bson';
 import { EventEmitter } from 'events';
 import * as moment from 'moment';
-import { Model, mongo, Types } from 'mongoose';
+import { Model, mongo } from 'mongoose';
 
-import { IModelInstance, ISortOptions } from './generic-mongoose-crud-service.interfaces';
-import { IDynamicObject, IGenericMongooseCrudServiceOptions, IMongoDocument } from './generic-mongoose-crud-service.interfaces';
+import {
+  IDynamicObject,
+  IGenericMongooseCrudServiceOptions,
+  IModelInstance,
+  IMongoDocument,
+  ISortOptions,
+} from './generic-mongoose-crud-service.interfaces';
 
-export class GenericMongooseCrudService<T extends IModelInstance> {
+export class GenericMongooseCrudService<T extends IModelInstance, M extends T & IMongoDocument> {
   public readonly events: EventEmitter = new EventEmitter();
   protected readonly eventsCreate: string;
   protected readonly eventsDelete: string;
   protected readonly eventsPatch: string;
-  protected readonly model: Model<T & IMongoDocument>;
+  protected readonly model: Model<M>;
   protected readonly modelName: string = 'GENERIC';
 
-  constructor(options: IGenericMongooseCrudServiceOptions<T & IMongoDocument> = {}) {
+  constructor(options: IGenericMongooseCrudServiceOptions<M> = {}) {
     this.model = options.model ? options.model : this.model;
     this.modelName = options.modelName ? options.modelName : this.model.modelName;
 
@@ -82,7 +87,7 @@ export class GenericMongooseCrudService<T extends IModelInstance> {
     return aggregration.length > 0 ? aggregration.pop().count : 0;
   }
 
-  create(data: Partial<T>, user: any): Promise<T & IMongoDocument> {
+  create(data: Partial<T>, user: any): Promise<M> {
     data.createdAt = moment.utc().toDate();
     data.createdBy = user;
     const instance = this.model.create(data);
@@ -90,7 +95,7 @@ export class GenericMongooseCrudService<T extends IModelInstance> {
     return instance;
   }
 
-  async getById(_id: string, projection?: string): Promise<T & IMongoDocument> {
+  async getById(_id: string, projection?: string): Promise<M> {
     const instance = await this.model.findOne({ _id, deleted: false }, projection).exec();
     if (!instance) {
       throw new ResourceNotFoundException(this.modelName, _id);
@@ -129,7 +134,7 @@ export class GenericMongooseCrudService<T extends IModelInstance> {
     return this.getSubdocument<Subdocument>(parentId, subdocumentField, { _id: new ObjectId(subdocumentId) });
   }
 
-  async hardDelete(_id: string): Promise<T & IMongoDocument> {
+  async hardDelete(_id: string): Promise<M> {
     const instance = await this.model.findByIdAndDelete(_id).exec();
     this.events.emit(this.eventsDelete, instance);
     return instance;
@@ -139,7 +144,7 @@ export class GenericMongooseCrudService<T extends IModelInstance> {
     return this.patchById(parentId, { $pull: { [subdocumentField]: { _id: subdocumentId } } }, user);
   }
 
-  list(filter: IDynamicObject = {}, limit?: number, skip?: number, projection?: string, sort?: ISortOptions): Promise<Array<T & IMongoDocument>> {
+  list(filter: IDynamicObject = {}, limit?: number, skip?: number, projection?: string, sort?: ISortOptions): Promise<Array<M>> {
     filter.deleted = filter.deleted !== undefined ? filter.deleted : false;
     return this.model.find(filter, projection, { sort, skip, limit }).exec();
   }
@@ -182,11 +187,11 @@ export class GenericMongooseCrudService<T extends IModelInstance> {
     return aggregration.length > 0 ? (aggregration.pop()[subdocumentField] as Array<Subdocument & IMongoDocument>) : [];
   }
 
-  async patch(filter: IDynamicObject = {}, update: IDynamicObject = {}, user: any): Promise<T & IMongoDocument> {
+  async patch(filter: IDynamicObject = {}, update: IDynamicObject = {}, user: any): Promise<M> {
     return this.update(filter, { $set: update }, user);
   }
 
-  async patchById(_id: string, update: any, user: any): Promise<T & IMongoDocument> {
+  async patchById(_id: string, update: any, user: any): Promise<M> {
     return this.patch({ _id: new ObjectId(_id) }, update, user);
   }
 
@@ -224,7 +229,7 @@ export class GenericMongooseCrudService<T extends IModelInstance> {
     return this.patchSubdocument<Subdocument>(parentId, subdocumentField, { _id: new ObjectId(subdocumentId) }, update, user);
   }
 
-  async softDelete(_id: string, user: any): Promise<T & IMongoDocument> {
+  async softDelete(_id: string, user: any): Promise<M> {
     return this.patchById(_id, { deleted: true, deletedAt: this.now(), deletedBy: user }, user);
   }
 
@@ -238,7 +243,7 @@ export class GenericMongooseCrudService<T extends IModelInstance> {
     );
   }
 
-  async update(filter: IDynamicObject = {}, update: IDynamicObject = {}, user: any): Promise<T & IMongoDocument> {
+  async update(filter: IDynamicObject = {}, update: IDynamicObject = {}, user: any): Promise<M> {
     update.$set = update.$set ? Object.assign(this.getDefaultUpdate(user), update.$set) : this.getDefaultUpdate(user);
     const conditions = Object.assign({ deleted: false }, filter);
     const instance = await this.model.findOneAndUpdate(conditions, update, { new: true }).exec();
@@ -249,7 +254,7 @@ export class GenericMongooseCrudService<T extends IModelInstance> {
     return instance;
   }
 
-  async updateById(_id: string, update: IDynamicObject = {}, user: any): Promise<T & IMongoDocument> {
+  async updateById(_id: string, update: IDynamicObject = {}, user: any): Promise<M> {
     return this.update({ _id: new ObjectId(_id) }, update, user);
   }
 
@@ -270,7 +275,7 @@ export class GenericMongooseCrudService<T extends IModelInstance> {
     };
   }
 
-  protected merge(doc: IMongoDocument, newDoc: Partial<T & IMongoDocument>): IMongoDocument {
+  protected merge(doc: IMongoDocument, newDoc: Partial<M>): IMongoDocument {
     for (const key of Object.keys(newDoc)) {
       doc.set(key, newDoc[key]);
     }

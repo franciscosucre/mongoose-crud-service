@@ -86,7 +86,7 @@ const schemaDefinition: mongoose.SchemaDefinition = Object.assign<mongoose.Schem
 );
 
 model = mongoose.model(MODEL_NAME, new mongoose.Schema(schemaDefinition));
-service = new GenericMongooseCrudService<ITestData>({ model, modelName: MODEL_NAME });
+service = new GenericMongooseCrudService<ITestData, ITestDataModel>({ model, modelName: MODEL_NAME });
 ```
 
 ### **Soft Delete**
@@ -114,26 +114,26 @@ usersService.eventEmitter.on(eventName, async (data: IUserModel) => {
 The service has methods for documents and first-level subdocuments (Deeply nested subdocuments is not supported). Most methods are aliases of other methods, like the ById kind that will call the basic method with an objectId in the query.
 
 ```typescript
-export declare class GenericMongooseCrudService<T extends IModelInstance> {
+export declare class GenericMongooseCrudService<T extends IModelInstance, M extends T & IMongoDocument> {
     addSubdocument<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, subdocument: any, user: any): Promise<Subdocument>;
     count(filter?: IDynamicObject): Promise<number>;
     countSubdocuments(parentId: string, subdocumentField: string, filter?: IDynamicObject): Promise<number>;
-    create(data: Partial<T>, user: any): Promise<T & IMongoDocument>;
-    getById(_id: string, projection?: string): Promise<T & IMongoDocument>;
+    create(data: Partial<T>, user: any): Promise<M>;
+    getById(_id: string, projection?: string): Promise<M>;
     getSubdocument<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, filter?: IDynamicObject): Promise<Subdocument & IMongoDocument>;
     getSubdocumentById<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, subdocumentId: string): Promise<Subdocument & IMongoDocument>;
-    hardDelete(_id: string): Promise<T & IMongoDocument>;
-    hardDeleteSubdocument(parentId: string, subdocumentField: string, subdocumentId: string, user: any): Promise<T & IMongoDocument>;
-    list(filter?: IDynamicObject, limit?: number, skip?: number, projection?: string, sort?: ISortOptions): Promise<Array<T & IMongoDocument>>;
+    hardDelete(_id: string): Promise<M>;
+    hardDeleteSubdocument(parentId: string, subdocumentField: string, subdocumentId: string, user: any): Promise<M>;
+    list(filter?: IDynamicObject, limit?: number, skip?: number, projection?: string, sort?: ISortOptions): Promise<Array<M>>;
     listSubdocuments<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, filter?: IDynamicObject, limit?: number, skip?: number, sort?: ISortOptions): Promise<Array<Subdocument & IMongoDocument>>;
-    patch(filter: IDynamicObject, update: IDynamicObject, user: any): Promise<T & IMongoDocument>;
-    patchById(_id: string, update: any, user: any): Promise<T & IMongoDocument>;
+    patch(filter: IDynamicObject, update: IDynamicObject, user: any): Promise<M>;
+    patchById(_id: string, update: any, user: any): Promise<M>;
     patchSubdocument<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, filter: IDynamicObject, update: any, user: any): Promise<Subdocument & IMongoDocument>;
     patchSubdocumentById<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, subdocumentId: string, update: any, user: any): Promise<Subdocument & IMongoDocument>;
-    softDelete(_id: string, user: any): Promise<T & IMongoDocument>;
+    softDelete(_id: string, user: any): Promise<M>;
     softDeleteSubdocument<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, subdocumentId: string, user: any): Promise<Subdocument & IMongoDocument>;
-    update(filter: IDynamicObject, update: IDynamicObject, user: any): Promise<T & IMongoDocument>;
-    updateById(_id: string, update: IDynamicObject, user: any): Promise<T & IMongoDocument>;
+    update(filter: IDynamicObject, update: IDynamicObject, user: any): Promise<M>;
+    updateById(_id: string, update: IDynamicObject, user: any): Promise<M>;
 }
 
 ```
