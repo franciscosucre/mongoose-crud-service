@@ -95,12 +95,17 @@ export class GenericMongooseCrudService<T extends IModelInstance, M extends T & 
     return instance;
   }
 
-  async getById(_id: string, projection?: string): Promise<M> {
-    const instance = await this.model.findOne({ _id, deleted: false }, projection).exec();
+  async get(filter: IDynamicObject, projection?: string): Promise<M> {
+    const conditions = Object.assign({ deleted: false }, filter);
+    const instance = await this.model.findOne(conditions, projection).exec();
     if (!instance) {
-      throw new ResourceNotFoundException(this.modelName, _id);
+      throw new ResourceNotFoundException(this.modelName, JSON.stringify(conditions));
     }
     return instance;
+  }
+
+  async getById(_id: string, projection?: string): Promise<M> {
+    return this.get({ _id: new ObjectId(_id) }, projection);
   }
 
   async getSubdocument<Subdocument extends IModelInstance>(
