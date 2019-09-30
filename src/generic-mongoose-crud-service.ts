@@ -19,7 +19,7 @@ export class GenericMongooseCrudService<T extends IModelInstance, M extends T & 
     }
   }
 
-  async addSubdocument<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, subdocument: any, user: any) {
+  async addSubdocument<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, subdocument: any, user?: any) {
     subdocument.createdAt = moment.utc().toDate();
     subdocument.createdBy = user;
     const instance = await this.updateById(parentId, { $push: { [subdocumentField]: subdocument } }, user);
@@ -57,7 +57,7 @@ export class GenericMongooseCrudService<T extends IModelInstance, M extends T & 
     return aggregration.length > 0 ? aggregration.pop().count : 0;
   }
 
-  create(data: Partial<T>, user: any): Promise<M> {
+  create(data: Partial<T>, user?: any): Promise<M> {
     data.createdAt = moment.utc().toDate();
     data.createdBy = user;
     const instance = this.model.create(data);
@@ -115,7 +115,7 @@ export class GenericMongooseCrudService<T extends IModelInstance, M extends T & 
     return instance;
   }
 
-  hardDeleteSubdocument(parentId: string, subdocumentField: string, subdocumentId: string, user: any) {
+  hardDeleteSubdocument(parentId: string, subdocumentField: string, subdocumentId: string, user?: any) {
     return this.patchById(parentId, { $pull: { [subdocumentField]: { _id: subdocumentId } } }, user);
   }
 
@@ -162,11 +162,11 @@ export class GenericMongooseCrudService<T extends IModelInstance, M extends T & 
     return aggregration.length > 0 ? (aggregration.pop()[subdocumentField] as Array<Subdocument & IMongoDocument>) : [];
   }
 
-  async patch(filter: IDynamicObject = {}, update: IDynamicObject = {}, user: any): Promise<M> {
+  async patch(filter: IDynamicObject = {}, update: IDynamicObject = {}, user?: any): Promise<M> {
     return this.update(filter, { $set: update }, user);
   }
 
-  async patchById(_id: string, update: any, user: any): Promise<M> {
+  async patchById(_id: string, update: any, user?: any): Promise<M> {
     return this.patch({ _id: new ObjectId(_id) }, update, user);
   }
 
@@ -175,7 +175,7 @@ export class GenericMongooseCrudService<T extends IModelInstance, M extends T & 
     subdocumentField: string,
     filter: IDynamicObject = {},
     update: any,
-    user: any,
+    user?: any,
   ): Promise<Subdocument & IMongoDocument> {
     const conditions = Object.keys(filter).reduce(
       (result, key) => {
@@ -199,16 +199,16 @@ export class GenericMongooseCrudService<T extends IModelInstance, M extends T & 
     subdocumentField: string,
     subdocumentId: string,
     update: any,
-    user: any,
+    user?: any,
   ) {
     return this.patchSubdocument<Subdocument>(parentId, subdocumentField, { _id: new ObjectId(subdocumentId) }, update, user);
   }
 
-  async softDelete(_id: string, user: any): Promise<M> {
+  async softDelete(_id: string, user?: any): Promise<M> {
     return this.patchById(_id, { deleted: true, deletedAt: this.now(), deletedBy: user }, user);
   }
 
-  async softDeleteSubdocument<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, subdocumentId: string, user: any) {
+  async softDeleteSubdocument<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, subdocumentId: string, user?: any) {
     return this.patchSubdocumentById<Subdocument>(
       parentId,
       subdocumentField,
@@ -218,7 +218,7 @@ export class GenericMongooseCrudService<T extends IModelInstance, M extends T & 
     );
   }
 
-  async update(filter: IDynamicObject = {}, update: IDynamicObject = {}, user: any): Promise<M> {
+  async update(filter: IDynamicObject = {}, update: IDynamicObject = {}, user?: any): Promise<M> {
     update.$set = update.$set ? Object.assign(this.getDefaultUpdate(user), update.$set) : this.getDefaultUpdate(user);
     const conditions = Object.assign({ deleted: false }, filter);
     const instance = await this.model.findOneAndUpdate(conditions, update, { new: true }).exec();
@@ -229,7 +229,7 @@ export class GenericMongooseCrudService<T extends IModelInstance, M extends T & 
     return instance;
   }
 
-  async updateById(_id: string, update: IDynamicObject = {}, user: any): Promise<M> {
+  async updateById(_id: string, update: IDynamicObject = {}, user?: any): Promise<M> {
     return this.update({ _id: new ObjectId(_id) }, update, user);
   }
 
@@ -243,7 +243,7 @@ export class GenericMongooseCrudService<T extends IModelInstance, M extends T & 
     return result;
   }
 
-  protected getDefaultUpdate(user: any): IDynamicObject {
+  protected getDefaultUpdate(user?: any): IDynamicObject {
     return {
       updatedAt: this.now(),
       updatedBy: user,
