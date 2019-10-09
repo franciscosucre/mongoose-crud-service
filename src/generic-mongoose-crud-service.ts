@@ -6,7 +6,7 @@ import { Model, mongo } from 'mongoose';
 
 import { IDynamicObject, IModelInstance, IMongoDocument, ISortOptions } from './generic-mongoose-crud-service.interfaces';
 
-export class GenericMongooseCrudService<T extends IModelInstance, M extends T & IMongoDocument> {
+export class GenericMongooseCrudService<T, M extends T & IMongoDocument> {
   public readonly events: EventEmitter = new EventEmitter();
   protected readonly eventsCreate: string = 'CREATED';
   protected readonly eventsDelete: string = 'DELETED';
@@ -58,9 +58,7 @@ export class GenericMongooseCrudService<T extends IModelInstance, M extends T & 
   }
 
   create(data: Partial<T>, user?: any): Promise<M> {
-    data.createdAt = moment.utc().toDate();
-    data.createdBy = user;
-    const instance = this.model.create(data);
+    const instance = this.model.create({ ...data, createdAt: moment.utc().toDate(), createdBy: user });
     this.events.emit(this.eventsCreate, instance);
     return instance;
   }
