@@ -4,7 +4,7 @@ import { EventEmitter } from 'events';
 import * as moment from 'moment';
 import { Model, mongo } from 'mongoose';
 
-import { IDynamicObject, IModelInstance, IMongoDocument, ISortOptions, ModelType, SubmodelType, DynamicObjectKeys } from './generic-mongoose-crud-service.interfaces';
+import { DynamicObjectKeys, IDynamicObject, ISortOptions, ModelType, SubmodelType } from './generic-mongoose-crud-service.interfaces';
 
 export class GenericMongooseCrudService<T, M extends ModelType<T>> {
   public readonly events: EventEmitter = new EventEmitter();
