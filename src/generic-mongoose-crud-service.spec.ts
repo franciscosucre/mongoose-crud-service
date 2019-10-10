@@ -396,7 +396,7 @@ describe('GenericMongooseCrudService', () => {
       });
 
       it('should add the sub', async () => {
-        const sub = await service.addSubdocument(instance._id, subdocumentField, generateTestSubData(), generateUserData());
+        const sub = await service.addSubdocument<ITestSubData>(instance._id, subdocumentField, generateTestSubData(), generateUserData());
         const newPatient = await model.findById(instance._id, 'subs').exec();
         expect(newPatient.subs.length).toEqual(instance.subs.length + 1);
         expect(newPatient.subs.find((r) => r._id.toString() === sub._id.toString())).toBeTruthy();

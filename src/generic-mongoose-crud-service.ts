@@ -19,7 +19,7 @@ export class GenericMongooseCrudService<T, M extends ModelType<T>> {
     }
   }
 
-  async addSubdocument<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, subdocument: any, user?: any) {
+  async addSubdocument<Subdocument>(parentId: string, subdocumentField: string, subdocument: any, user?: any) {
     subdocument.createdAt = moment.utc().toDate();
     subdocument.createdBy = user;
     const instance = await this.updateById(parentId, { $push: { [subdocumentField]: subdocument } }, user);
@@ -76,7 +76,7 @@ export class GenericMongooseCrudService<T, M extends ModelType<T>> {
     return this.get({ _id: new ObjectId(_id) }, projection);
   }
 
-  async getSubdocument<Subdocument extends IModelInstance>(
+  async getSubdocument<Subdocument>(
     parentId: string,
     subdocumentField: string,
     filter: IDynamicObject = {},
@@ -99,7 +99,7 @@ export class GenericMongooseCrudService<T, M extends ModelType<T>> {
     return instance[subdocumentField].pop() as Subdocument & IMongoDocument;
   }
 
-  async getSubdocumentById<Subdocument extends IModelInstance>(
+  async getSubdocumentById<Subdocument>(
     parentId: string,
     subdocumentField: string,
     subdocumentId: string,
@@ -122,7 +122,7 @@ export class GenericMongooseCrudService<T, M extends ModelType<T>> {
     return this.model.find(filter, projection, { sort, skip, limit }).exec();
   }
 
-  async listSubdocuments<Subdocument extends IModelInstance>(
+  async listSubdocuments<Subdocument>(
     parentId: string,
     subdocumentField: string,
     filter: IDynamicObject = {},
@@ -168,7 +168,7 @@ export class GenericMongooseCrudService<T, M extends ModelType<T>> {
     return this.patch({ _id: new ObjectId(_id) }, update, user);
   }
 
-  async patchSubdocument<Subdocument extends IModelInstance>(
+  async patchSubdocument<Subdocument>(
     parentId: string,
     subdocumentField: string,
     filter: IDynamicObject = {},
@@ -192,7 +192,7 @@ export class GenericMongooseCrudService<T, M extends ModelType<T>> {
     return subdocument as Subdocument & IMongoDocument;
   }
 
-  async patchSubdocumentById<Subdocument extends IModelInstance>(
+  async patchSubdocumentById<Subdocument>(
     parentId: string,
     subdocumentField: string,
     subdocumentId: string,
@@ -206,7 +206,7 @@ export class GenericMongooseCrudService<T, M extends ModelType<T>> {
     return this.patchById(_id, { deleted: true, deletedAt: this.now(), deletedBy: user }, user);
   }
 
-  async softDeleteSubdocument<Subdocument extends IModelInstance>(parentId: string, subdocumentField: string, subdocumentId: string, user?: any) {
+  async softDeleteSubdocument<Subdocument>(parentId: string, subdocumentField: string, subdocumentId: string, user?: any) {
     return this.patchSubdocumentById<Subdocument>(
       parentId,
       subdocumentField,
@@ -252,9 +252,9 @@ export class GenericMongooseCrudService<T, M extends ModelType<T>> {
     };
   }
 
-  protected merge(doc: IMongoDocument, newDoc: Partial<M>): IMongoDocument {
+  protected merge<Input = object>(doc: Input, newDoc: Partial<Input>): Input {
     for (const key of Object.keys(newDoc)) {
-      doc.set(key, newDoc[key]);
+      doc[key] = newDoc[key];
     }
     return doc;
   }
