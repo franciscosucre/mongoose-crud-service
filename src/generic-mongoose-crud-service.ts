@@ -4,9 +4,9 @@ import { EventEmitter } from 'events';
 import * as moment from 'moment';
 import { Model, mongo } from 'mongoose';
 
-import { IDynamicObject, IModelInstance, IMongoDocument, ISortOptions } from './generic-mongoose-crud-service.interfaces';
+import { IDynamicObject, IModelInstance, IMongoDocument, ISortOptions, ModelType } from './generic-mongoose-crud-service.interfaces';
 
-export class GenericMongooseCrudService<T, M extends T & IMongoDocument> {
+export class GenericMongooseCrudService<T, M extends ModelType<T>> {
   public readonly events: EventEmitter = new EventEmitter();
   protected readonly eventsCreate: string = 'CREATED';
   protected readonly eventsDelete: string = 'DELETED';
@@ -27,17 +27,17 @@ export class GenericMongooseCrudService<T, M extends T & IMongoDocument> {
   }
 
   count(filter: IDynamicObject = {}): Promise<number> {
-    filter.deleted = filter.deleted ? filter.deleted : false;
+    filter.deleted = filter.deleted ? filter.deleted : { $ne: true };
     return this.model.countDocuments(filter).exec();
   }
 
   async countSubdocuments(parentId: string, subdocumentField: string, filter: IDynamicObject = {}) {
-    const matches = await this.model.countDocuments({ _id: parentId, deleted: false }).exec();
+    const matches = await this.model.countDocuments({ _id: parentId, deleted: this.deletedDefaultFilter() }).exec();
     if (matches <= 0) {
       throw new ResourceNotFoundException(this.model.modelName, parentId);
     }
     if (filter.deleted === undefined) {
-      filter.deleted = false;
+      filter.deleted = this.deletedDefaultFilter();
     }
     const transformedFilter = this.formatQueryForAggregation(filter, subdocumentField);
     const aggregration: { _id: string; count: number }[] = await this.model
@@ -64,7 +64,7 @@ export class GenericMongooseCrudService<T, M extends T & IMongoDocument> {
   }
 
   async get(filter: IDynamicObject, projection?: string): Promise<M> {
-    const conditions = Object.assign({ deleted: false }, filter);
+    const conditions = Object.assign({ deleted: this.deletedDefaultFilter() }, filter);
     const instance = await this.model.findOne(conditions, projection).exec();
     if (!instance) {
       throw new ResourceNotFoundException(this.model.modelName, JSON.stringify(conditions));
@@ -81,7 +81,7 @@ export class GenericMongooseCrudService<T, M extends T & IMongoDocument> {
     subdocumentField: string,
     filter: IDynamicObject = {},
   ): Promise<Subdocument & IMongoDocument> {
-    const conditions = Object.assign({ deleted: false }, filter);
+    const conditions = Object.assign({ deleted: this.deletedDefaultFilter() }, filter);
     const instance = await this.model
       .findOne(
         {
@@ -118,7 +118,7 @@ export class GenericMongooseCrudService<T, M extends T & IMongoDocument> {
   }
 
   list(filter: IDynamicObject = {}, limit?: number, skip?: number, projection?: string, sort?: ISortOptions): Promise<Array<M>> {
-    filter.deleted = filter.deleted !== undefined ? filter.deleted : false;
+    filter.deleted = filter.deleted !== undefined ? filter.deleted : this.deletedDefaultFilter();
     return this.model.find(filter, projection, { sort, skip, limit }).exec();
   }
 
@@ -131,11 +131,11 @@ export class GenericMongooseCrudService<T, M extends T & IMongoDocument> {
     sort: ISortOptions = { _id: 1 },
   ): Promise<Array<Subdocument & IMongoDocument>> {
     if (filter.deleted === undefined) {
-      filter.deleted = false;
+      filter.deleted = this.deletedDefaultFilter();
     }
     const transformedSort = this.formatQueryForAggregation(sort, subdocumentField);
     const transformedFilter = this.formatQueryForAggregation(filter, subdocumentField);
-    const matches = await this.model.countDocuments({ _id: parentId, deleted: false }).exec();
+    const matches = await this.model.countDocuments({ _id: parentId, deleted: this.deletedDefaultFilter() }).exec();
     if (matches <= 0) {
       throw new ResourceNotFoundException(this.model.modelName, parentId);
     }
@@ -180,7 +180,7 @@ export class GenericMongooseCrudService<T, M extends T & IMongoDocument> {
         result[`${subdocumentField}.${key}`] = filter[key];
         return result;
       },
-      { _id: new ObjectId(parentId), deleted: false, [`${subdocumentField}.deleted`]: false },
+      { _id: new ObjectId(parentId), deleted: this.deletedDefaultFilter(), [`${subdocumentField}.deleted`]: this.deletedDefaultFilter() },
     );
     const subdocument = await this.getSubdocument(parentId, subdocumentField, filter);
     if (!subdocument) {
@@ -218,7 +218,7 @@ export class GenericMongooseCrudService<T, M extends T & IMongoDocument> {
 
   async update(filter: IDynamicObject = {}, update: IDynamicObject = {}, user?: any): Promise<M> {
     update.$set = update.$set ? Object.assign(this.getDefaultUpdate(user), update.$set) : this.getDefaultUpdate(user);
-    const conditions = Object.assign({ deleted: false }, filter);
+    const conditions = Object.assign({ deleted: this.deletedDefaultFilter() }, filter);
     const instance = await this.model.findOneAndUpdate(conditions, update, { new: true }).exec();
     if (!instance) {
       throw new ResourceNotFoundException(this.model.modelName, JSON.stringify(conditions));
@@ -229,6 +229,10 @@ export class GenericMongooseCrudService<T, M extends T & IMongoDocument> {
 
   async updateById(_id: string, update: IDynamicObject = {}, user?: any): Promise<M> {
     return this.update({ _id: new ObjectId(_id) }, update, user);
+  }
+
+  protected deletedDefaultFilter() {
+    return { $ne: true };
   }
 
   protected formatQueryForAggregation(input: IDynamicObject, field: string): IDynamicObject {

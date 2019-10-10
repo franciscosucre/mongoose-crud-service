@@ -16,7 +16,7 @@ export interface ITimestamped {
 }
 
 export interface ISoftDeletable {
-  deleted: boolean;
+  deleted?: boolean;
   deletedAt?: Date;
   deletedBy?: any;
 }
@@ -28,3 +28,5 @@ export interface IMongoDocument extends Document, IModelInstance {}
 export interface ISortOptions {
   [key: string]: -1 | 1;
 }
+
+export type ModelType<T> = T & IMongoDocument;
