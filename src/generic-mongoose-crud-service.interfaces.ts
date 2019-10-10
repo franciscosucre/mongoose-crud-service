@@ -1,4 +1,4 @@
-import { Document, Model } from 'mongoose';
+import { Document, Model, Types } from 'mongoose';
 
 export interface IDynamicObject {
   [key: string]: any;
@@ -30,3 +30,5 @@ export interface ISortOptions {
 }
 
 export type ModelType<T> = T & IMongoDocument;
+
+export type SubmodelType<T> = T & Types.Subdocument;

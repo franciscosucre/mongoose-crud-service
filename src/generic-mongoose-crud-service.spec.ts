@@ -5,7 +5,7 @@ import * as mongoUnit from 'mongo-unit';
 import * as mongoose from 'mongoose';
 
 import { GenericMongooseCrudService } from './generic-mongoose-crud-service';
-import { IModelInstance, IMongoDocument } from './generic-mongoose-crud-service.interfaces';
+import { IModelInstance, IMongoDocument, SubmodelType } from './generic-mongoose-crud-service.interfaces';
 import { timestampedSchemaDefinition } from './generic-mongoose-crud-service.schemas';
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000;
@@ -430,16 +430,18 @@ describe('GenericMongooseCrudService', () => {
       });
 
       it('should patch the subdocument', async () => {
-        const sub: ITestSubDataModel = faker.random.arrayElement(instance.subs);
-        const receivedRep: ITestSubDataModel = await service.patchSubdocumentById<ITestSubData>(
+        const sub: SubmodelType<ITestSubData> = faker.random.arrayElement(instance.subs);
+        const receivedRep: SubmodelType<ITestSubData> = await service.patchSubdocumentById<ITestSubData>(
           instance._id,
           subdocumentField,
           sub._id,
           { msg: 'msg' },
           generateUserData(),
         );
+        const persistedSub = await service.getSubdocumentById<ITestSubData>(instance._id, subdocumentField, sub._id);
         expect(receivedRep.msg).not.toEqual(sub.msg);
         expect(receivedRep.id).toEqual(sub.id);
+        expect(receivedRep.msg).toEqual(persistedSub.msg);
       });
     });
 
