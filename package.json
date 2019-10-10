@@ -1,7 +1,7 @@
 {
   "name": "@aluxion-nestjs/mongoose-crud-service",
   "displayName": "Mongoose CRUD Service",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A customizable service that implements top level CRUD operations as well as one-level nested CRUD operations",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
