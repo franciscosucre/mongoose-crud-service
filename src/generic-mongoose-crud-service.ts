@@ -76,11 +76,7 @@ export class GenericMongooseCrudService<T, M extends ModelType<T>> {
     return this.get({ _id: new ObjectId(_id) }, projection);
   }
 
-  async getSubdocument<Subdocument>(
-    parentId: string,
-    subdocumentField: string,
-    filter: IDynamicObject = {},
-  ): Promise<Subdocument & IMongoDocument> {
+  async getSubdocument<Subdocument>(parentId: string, subdocumentField: string, filter: IDynamicObject = {}): Promise<Subdocument & IMongoDocument> {
     const conditions = Object.assign({ deleted: this.deletedDefaultFilter() }, filter);
     const instance = await this.model
       .findOne(
@@ -99,11 +95,7 @@ export class GenericMongooseCrudService<T, M extends ModelType<T>> {
     return instance[subdocumentField].pop() as Subdocument & IMongoDocument;
   }
 
-  async getSubdocumentById<Subdocument>(
-    parentId: string,
-    subdocumentField: string,
-    subdocumentId: string,
-  ): Promise<Subdocument & IMongoDocument> {
+  async getSubdocumentById<Subdocument>(parentId: string, subdocumentField: string, subdocumentId: string): Promise<Subdocument & IMongoDocument> {
     return this.getSubdocument<Subdocument>(parentId, subdocumentField, { _id: new ObjectId(subdocumentId) });
   }
 
@@ -192,13 +184,7 @@ export class GenericMongooseCrudService<T, M extends ModelType<T>> {
     return subdocument as Subdocument & IMongoDocument;
   }
 
-  async patchSubdocumentById<Subdocument>(
-    parentId: string,
-    subdocumentField: string,
-    subdocumentId: string,
-    update: any,
-    user?: any,
-  ) {
+  async patchSubdocumentById<Subdocument>(parentId: string, subdocumentField: string, subdocumentId: string, update: any, user?: any) {
     return this.patchSubdocument<Subdocument>(parentId, subdocumentField, { _id: new ObjectId(subdocumentId) }, update, user);
   }
 
