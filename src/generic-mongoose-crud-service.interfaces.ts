@@ -32,3 +32,5 @@ export interface ISortOptions {
 export type ModelType<T> = T & IMongoDocument;
 
 export type SubmodelType<T> = T & Types.Subdocument;
+
+export type DynamicObjectKeys<T> = keyof T | string;
