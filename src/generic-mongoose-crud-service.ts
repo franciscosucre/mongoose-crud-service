@@ -6,7 +6,7 @@ import { Model, mongo } from 'mongoose';
 
 import { DynamicObjectKeys, IDynamicObject, ISortOptions, ModelType, SubmodelType } from './generic-mongoose-crud-service.interfaces';
 
-export class GenericMongooseCrudService<T, M extends ModelType<T>> {
+export class GenericMongooseCrudService<T extends object, M extends ModelType<T>> {
   public readonly events: EventEmitter = new EventEmitter();
   protected readonly eventsCreate: string = 'CREATED';
   protected readonly eventsDelete: string = 'DELETED';
@@ -122,7 +122,7 @@ export class GenericMongooseCrudService<T, M extends ModelType<T>> {
     return this.model.find(filter, projection, { sort, skip, limit }).exec();
   }
 
-  async listSubdocuments<DataModel>(
+  async listSubdocuments<DataModel extends object>(
     parentId: string,
     subdocumentField: DynamicObjectKeys<T>,
     filter: IDynamicObject = {},
@@ -168,7 +168,7 @@ export class GenericMongooseCrudService<T, M extends ModelType<T>> {
     return this.patch({ _id: new ObjectId(_id) }, update, user);
   }
 
-  async patchSubdocument<DataModel>(
+  async patchSubdocument<DataModel extends object>(
     parentId: string,
     subdocumentField: DynamicObjectKeys<T>,
     filter: IDynamicObject = {},
@@ -196,7 +196,13 @@ export class GenericMongooseCrudService<T, M extends ModelType<T>> {
     return subdocumentToUpdate;
   }
 
-  async patchSubdocumentById<DataModel>(parentId: string, subdocumentField: DynamicObjectKeys<T>, subdocumentId: string, update: any, user?: any) {
+  async patchSubdocumentById<DataModel extends object>(
+    parentId: string,
+    subdocumentField: DynamicObjectKeys<T>,
+    subdocumentId: string,
+    update: any,
+    user?: any,
+  ) {
     return this.patchSubdocument<DataModel>(parentId, subdocumentField, { _id: new ObjectId(subdocumentId) }, update, user);
   }
 
@@ -204,7 +210,7 @@ export class GenericMongooseCrudService<T, M extends ModelType<T>> {
     return this.patchById(_id, { deleted: true, deletedAt: this.now(), deletedBy: user }, user);
   }
 
-  async softDeleteSubdocument<DataModel>(parentId: string, subdocumentField: DynamicObjectKeys<T>, subdocumentId: string, user?: any) {
+  async softDeleteSubdocument<DataModel extends object>(parentId: string, subdocumentField: DynamicObjectKeys<T>, subdocumentId: string, user?: any) {
     return this.patchSubdocumentById<DataModel>(
       parentId,
       subdocumentField,

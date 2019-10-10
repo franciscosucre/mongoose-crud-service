@@ -25,12 +25,14 @@ export interface IModelInstance extends IMongoIdentified, ITimestamped, ISoftDel
 
 export interface IMongoDocument extends Document, IModelInstance {}
 
+export type SortValue = -1 | 1;
+
 export interface ISortOptions {
-  [key: string]: -1 | 1;
+  [key: string]: SortValue;
 }
 
-export type ModelType<T> = T & IMongoDocument;
+export type ModelType<T extends object> = T & IMongoDocument;
 
-export type SubmodelType<T> = T & Types.Subdocument;
+export type SubmodelType<T extends object> = T & Types.Subdocument;
 
-export type DynamicObjectKeys<T> = keyof T | string;
+export type DynamicObjectKeys<T extends object> = keyof T & string;
