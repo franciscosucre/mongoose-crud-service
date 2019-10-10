@@ -20,9 +20,11 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
   }
 
   async addSubdocument<DataModel extends object>(parentId: string, subdocumentField: DynamicObjectKeys<T>, subdocument: DataModel, user?: any) {
-    subdocument.createdAt = moment.utc().toDate();
-    subdocument.createdBy = user;
-    const instance = await this.updateById(parentId, { $push: { [subdocumentField]: subdocument } }, user);
+    const instance = await this.updateById(
+      parentId,
+      { $push: { [subdocumentField]: { ...subdocument, createdAt: moment.utc().toDate(), createdBy: user } as DataModel } },
+      user,
+    );
     return instance[subdocumentField as string].pop() as SubmodelType<DataModel>;
   }
 
