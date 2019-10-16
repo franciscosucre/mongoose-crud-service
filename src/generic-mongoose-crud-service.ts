@@ -2,9 +2,16 @@ import { ResourceNotFoundException } from '@aluxion-nestjs/exceptions';
 import { ObjectId } from 'bson';
 import { EventEmitter } from 'events';
 import * as moment from 'moment';
-import { Model, mongo } from 'mongoose';
+import { Model, mongo, Types } from 'mongoose';
 
-import { DynamicObjectKeys, IDynamicObject, ISortOptions, ModelType, SubmodelType } from './generic-mongoose-crud-service.interfaces';
+import {
+  DynamicObjectKeys,
+  HintedDynamicObject,
+  IDynamicObject,
+  ISortOptions,
+  ModelType,
+  SubmodelType,
+} from './generic-mongoose-crud-service.interfaces';
 
 export class GenericMongooseCrudService<T extends object, M extends ModelType<T>> {
   public readonly events: EventEmitter = new EventEmitter();
@@ -174,35 +181,24 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
     parentId: string,
     subdocumentField: DynamicObjectKeys<T>,
     filter: IDynamicObject = {},
-    update: keyof DataModel,
+    update: HintedDynamicObject<DataModel>,
     user?: any,
   ): Promise<SubmodelType<DataModel>> {
-    const conditions = Object.keys(filter).reduce(
-      (result, key) => {
-        result[`${subdocumentField}.${key}`] = filter[key];
-        return result;
-      },
-      { _id: new ObjectId(parentId), deleted: this.deletedDefaultFilter(), [`${subdocumentField}.deleted`]: this.deletedDefaultFilter() },
-    );
     const subdocument = await this.getSubdocument(parentId, subdocumentField, filter);
-    const document = await this.getById(parentId);
     if (!subdocument) {
-      throw new ResourceNotFoundException(subdocumentField as string, JSON.stringify(conditions));
+      throw new ResourceNotFoundException(subdocumentField as string, JSON.stringify(filter));
     }
-    const subdocumentToUpdate: SubmodelType<DataModel> = document[subdocumentField as string].find(
-      (sd: SubmodelType<DataModel>) => sd._id.toString() === subdocument._id.toString(),
-    );
-    this.merge(subdocumentToUpdate, Object.assign(this.getDefaultUpdate(user), update));
-    await document.save();
-    await this.patch({ _id: new ObjectId(parentId) }, this.getDefaultUpdate(user), user);
-    return subdocumentToUpdate;
+    const finalConditions = { _id: new ObjectId(parentId), [`${subdocumentField}._id`]: subdocument._id };
+    const document = await this.patch(finalConditions, this.formatUpdateForSubdocuments(update, subdocumentField), user);
+    const subList: unknown = document[subdocumentField];
+    return (subList as Types.DocumentArray<SubmodelType<DataModel>>).id(subdocument._id);
   }
 
   async patchSubdocumentById<DataModel extends object>(
     parentId: string,
     subdocumentField: DynamicObjectKeys<T>,
     subdocumentId: string,
-    update: any,
+    update: HintedDynamicObject<DataModel>,
     user?: any,
   ) {
     return this.patchSubdocument<DataModel>(parentId, subdocumentField, { _id: new ObjectId(subdocumentId) }, update, user);
@@ -222,7 +218,7 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
     );
   }
 
-  async update(filter: IDynamicObject = {}, update: IDynamicObject = {}, user?: any): Promise<M> {
+  async update(filter: IDynamicObject = {}, update: HintedDynamicObject<T> | any = {}, user?: any): Promise<M> {
     update.$set = update.$set ? Object.assign(this.getDefaultUpdate(user), update.$set) : this.getDefaultUpdate(user);
     const conditions = Object.assign({ deleted: this.deletedDefaultFilter() }, filter);
     const instance = await this.model.findOneAndUpdate(conditions, update, { new: true }).exec();
@@ -249,6 +245,23 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
       }
     }
     return result;
+  }
+
+  protected formatQueryForSubdocuments(input: IDynamicObject, field: string): IDynamicObject {
+    return Object.keys(input).reduce((result, key) => {
+      result[`${field}.${key}`] = input[key];
+      return result;
+    }, {});
+  }
+
+  protected formatUpdateForSubdocuments(input: IDynamicObject, field: string): IDynamicObject {
+    const finalUpdate = {};
+    for (const key in input) {
+      if (input.hasOwnProperty(key)) {
+        finalUpdate[`${field}.$.${key}`] = input[key];
+      }
+    }
+    return finalUpdate;
   }
 
   protected getDefaultUpdate(user?: any): IDynamicObject {

@@ -36,3 +36,5 @@ export type ModelType<T extends object> = T & IMongoDocument;
 export type SubmodelType<T extends object> = T & Types.Subdocument;
 
 export type DynamicObjectKeys<T extends object> = keyof T & string;
+
+export type HintedDynamicObject<T extends object> = { [key in keyof T]: T[key] } | { [key: string]: any };
