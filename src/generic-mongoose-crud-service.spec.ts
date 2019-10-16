@@ -369,13 +369,13 @@ describe('GenericMongooseCrudService', () => {
       });
 
       it('should count the subdocuments', async () => {
-        const count = await service.countSubdocuments(instance._id, subdocumentField);
+        const count = await service.countSubdocuments<ITestSubData>(instance._id, subdocumentField);
         expect(count).not.toBeNaN();
         expect(count).toEqual(instance.subs.length);
       });
 
       it('should count the subdocuments', async () => {
-        const count = await service.countSubdocuments(instance._id, subdocumentField, { _id: instance.subs[0]._id });
+        const count = await service.countSubdocuments<ITestSubData>(instance._id, subdocumentField, { _id: instance.subs[0]._id });
         expect(count).not.toBeNaN();
         expect(count).toEqual(1);
       });
