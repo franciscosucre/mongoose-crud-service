@@ -7,6 +7,7 @@ import { Model, mongo, Types } from 'mongoose';
 import {
   DynamicObjectKeys,
   HintedDynamicObject,
+  HintedFilter,
   IDynamicObject,
   ISortOptions,
   ModelType,
@@ -35,12 +36,12 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
     return instance[subdocumentField as string].pop() as SubmodelType<DataModel>;
   }
 
-  count(filter: IDynamicObject = {}): Promise<number> {
+  count(filter: HintedFilter<T> = {}): Promise<number> {
     filter.deleted = filter.deleted ? filter.deleted : { $ne: true };
     return this.model.countDocuments(filter).exec();
   }
 
-  async countSubdocuments(parentId: string, subdocumentField: DynamicObjectKeys<T>, filter: IDynamicObject = {}) {
+  async countSubdocuments<DataModel extends object>(parentId: string, subdocumentField: DynamicObjectKeys<T>, filter: HintedFilter<DataModel> = {}) {
     const matches = await this.model.countDocuments({ _id: parentId, deleted: this.deletedDefaultFilter() }).exec();
     if (matches <= 0) {
       throw new ResourceNotFoundException(this.model.modelName, parentId);
@@ -72,7 +73,7 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
     return instance;
   }
 
-  async get(filter: IDynamicObject, projection?: string): Promise<M> {
+  async get(filter: HintedFilter<T>, projection?: string): Promise<M> {
     const conditions = Object.assign({ deleted: this.deletedDefaultFilter() }, filter);
     const instance = await this.model.findOne(conditions, projection).exec();
     if (!instance) {
@@ -88,7 +89,7 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
   async getSubdocument<DataModel extends object>(
     parentId: string,
     subdocumentField: DynamicObjectKeys<T>,
-    filter: IDynamicObject = {},
+    filter: HintedFilter<DataModel>,
   ): Promise<SubmodelType<DataModel>> {
     const conditions = Object.assign({ deleted: this.deletedDefaultFilter() }, filter);
     const instance = await this.model
@@ -126,7 +127,7 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
     return this.patchById(parentId, { $pull: { [subdocumentField]: { _id: subdocumentId } } }, user);
   }
 
-  list(filter: IDynamicObject = {}, limit?: number, skip?: number, projection?: string, sort?: ISortOptions): Promise<Array<M>> {
+  list(filter: HintedFilter<T> = {}, limit?: number, skip?: number, projection?: string, sort?: ISortOptions): Promise<Array<M>> {
     filter.deleted = filter.deleted !== undefined ? filter.deleted : this.deletedDefaultFilter();
     return this.model.find(filter, projection, { sort, skip, limit }).exec();
   }
@@ -134,7 +135,7 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
   async listSubdocuments<DataModel extends object>(
     parentId: string,
     subdocumentField: DynamicObjectKeys<T>,
-    filter: IDynamicObject = {},
+    filter: HintedFilter<DataModel> = {},
     limit: number = 9999,
     skip: number = 0,
     sort: ISortOptions = { _id: 1 },
@@ -169,18 +170,18 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
     return aggregration.length > 0 ? (aggregration.pop()[subdocumentField as string] as Array<SubmodelType<DataModel>>) : [];
   }
 
-  async patch(filter: IDynamicObject = {}, update: IDynamicObject = {}, user?: any): Promise<M> {
+  async patch(filter: HintedFilter<T> = {}, update: HintedDynamicObject<T> = {}, user?: any): Promise<M> {
     return this.update(filter, { $set: update }, user);
   }
 
-  async patchById(_id: string, update: Partial<T> | IDynamicObject, user?: any): Promise<M> {
+  async patchById(_id: string, update: HintedDynamicObject<T>, user?: any): Promise<M> {
     return this.patch({ _id: new ObjectId(_id) }, update, user);
   }
 
   async patchSubdocument<DataModel extends object>(
     parentId: string,
     subdocumentField: DynamicObjectKeys<T>,
-    filter: IDynamicObject = {},
+    filter: HintedFilter<DataModel> = {},
     update: HintedDynamicObject<DataModel>,
     user?: any,
   ): Promise<SubmodelType<DataModel>> {
@@ -218,7 +219,7 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
     );
   }
 
-  async update(filter: IDynamicObject = {}, update: HintedDynamicObject<T> | any = {}, user?: any): Promise<M> {
+  async update(filter: HintedFilter<T> = {}, update: HintedDynamicObject<T> & { $set?: any } = {}, user?: any): Promise<M> {
     update.$set = update.$set ? Object.assign(this.getDefaultUpdate(user), update.$set) : this.getDefaultUpdate(user);
     const conditions = Object.assign({ deleted: this.deletedDefaultFilter() }, filter);
     const instance = await this.model.findOneAndUpdate(conditions, update, { new: true }).exec();
@@ -229,7 +230,7 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
     return instance;
   }
 
-  async updateById(_id: string, update: IDynamicObject = {}, user?: any): Promise<M> {
+  async updateById(_id: string, update: HintedDynamicObject<T> = {}, user?: any): Promise<M> {
     return this.update({ _id: new ObjectId(_id) }, update, user);
   }
 

@@ -76,12 +76,6 @@ const opts: mongoose.ConnectionOptions = { useNewUrlParser: true, useFindAndModi
 let model: mongoose.Model<ITestDataModel>;
 let service: GenericMongooseCrudService<ITestData, ITestDataModel>;
 
-class TestDataService extends GenericMongooseCrudService<ITestData, ITestDataModel> {
-  create(data, user): Promise<ITestDataModel> {
-    return super.create(data, user);
-  }
-}
-
 describe('GenericMongooseCrudService', () => {
   beforeAll(async () => {
     await mongoUnit.start();
