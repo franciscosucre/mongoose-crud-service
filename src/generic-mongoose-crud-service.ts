@@ -14,7 +14,11 @@ import {
   SubmodelType,
 } from './generic-mongoose-crud-service.interfaces';
 
-export class GenericMongooseCrudService<DataType extends object, DocumentType extends ModelType<DataType>, UserType extends object> {
+export class GenericMongooseCrudService<
+  DataType extends object = object,
+  DocumentType extends ModelType<DataType> = ModelType<DataType>,
+  UserType extends object = object
+> {
   public readonly events: EventEmitter = new EventEmitter();
   protected readonly eventsCreate: string = 'CREATED';
   protected readonly eventsDelete: string = 'DELETED';
