@@ -14,20 +14,25 @@ import {
   SubmodelType,
 } from './generic-mongoose-crud-service.interfaces';
 
-export class GenericMongooseCrudService<T extends object, M extends ModelType<T>> {
+export class GenericMongooseCrudService<DataType extends object, DocumentType extends ModelType<DataType>, UserType extends object> {
   public readonly events: EventEmitter = new EventEmitter();
   protected readonly eventsCreate: string = 'CREATED';
   protected readonly eventsDelete: string = 'DELETED';
   protected readonly eventsPatch: string = 'PATCH';
-  protected readonly model: Model<M>;
+  protected readonly model: Model<DocumentType>;
 
-  constructor(model?: Model<M>) {
+  constructor(model?: Model<DocumentType>) {
     if (model) {
       this.model = model;
     }
   }
 
-  async addSubdocument<DataModel extends object>(parentId: string, subdocumentField: DynamicObjectKeys<T>, subdocument: DataModel, user?: any) {
+  async addSubdocument<DataModel extends object>(
+    parentId: string,
+    subdocumentField: DynamicObjectKeys<DataType>,
+    subdocument: DataModel,
+    user?: UserType,
+  ) {
     const instance = await this.updateById(
       parentId,
       { $push: { [subdocumentField]: { ...subdocument, createdAt: moment.utc().toDate(), createdBy: user } as DataModel } },
@@ -36,12 +41,16 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
     return instance[subdocumentField as string].pop() as SubmodelType<DataModel>;
   }
 
-  count(filter: HintedFilter<T> = {}): Promise<number> {
+  count(filter: HintedFilter<DataType> = {}): Promise<number> {
     filter.deleted = filter.deleted ? filter.deleted : { $ne: true };
     return this.model.countDocuments(filter).exec();
   }
 
-  async countSubdocuments<DataModel extends object>(parentId: string, subdocumentField: DynamicObjectKeys<T>, filter: HintedFilter<DataModel> = {}) {
+  async countSubdocuments<DataModel extends object>(
+    parentId: string,
+    subdocumentField: DynamicObjectKeys<DataType>,
+    filter: HintedFilter<DataModel> = {},
+  ) {
     const matches = await this.model.countDocuments({ _id: parentId, deleted: this.deletedDefaultFilter() }).exec();
     if (matches <= 0) {
       throw new ResourceNotFoundException(this.model.modelName, parentId);
@@ -67,13 +76,13 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
     return aggregration.length > 0 ? aggregration.pop().count : 0;
   }
 
-  create(data: T, user?: any): Promise<M> {
+  create(data: DataType, user?: UserType): Promise<DocumentType> {
     const instance = this.model.create({ ...data, createdAt: moment.utc().toDate(), createdBy: user });
     this.events.emit(this.eventsCreate, instance);
     return instance;
   }
 
-  async get(filter: HintedFilter<T>, projection?: string): Promise<M> {
+  async get(filter: HintedFilter<DataType>, projection?: string): Promise<DocumentType> {
     const conditions = Object.assign({ deleted: this.deletedDefaultFilter() }, filter);
     const instance = await this.model.findOne(conditions, projection).exec();
     if (!instance) {
@@ -82,13 +91,13 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
     return instance;
   }
 
-  async getById(_id: string, projection?: string): Promise<M> {
+  async getById(_id: string, projection?: string): Promise<DocumentType> {
     return this.get({ _id: new ObjectId(_id) }, projection);
   }
 
   async getSubdocument<DataModel extends object>(
     parentId: string,
-    subdocumentField: DynamicObjectKeys<T>,
+    subdocumentField: DynamicObjectKeys<DataType>,
     filter: HintedFilter<DataModel>,
   ): Promise<SubmodelType<DataModel>> {
     const conditions = Object.assign({ deleted: this.deletedDefaultFilter() }, filter);
@@ -111,30 +120,30 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
 
   async getSubdocumentById<DataModel extends object>(
     parentId: string,
-    subdocumentField: DynamicObjectKeys<T>,
+    subdocumentField: DynamicObjectKeys<DataType>,
     subdocumentId: string,
   ): Promise<SubmodelType<DataModel>> {
     return this.getSubdocument<DataModel>(parentId, subdocumentField, { _id: new ObjectId(subdocumentId) });
   }
 
-  async hardDelete(_id: string): Promise<M> {
+  async hardDelete(_id: string): Promise<DocumentType> {
     const instance = await this.model.findByIdAndDelete(_id).exec();
     this.events.emit(this.eventsDelete, instance);
     return instance;
   }
 
-  hardDeleteSubdocument(parentId: string, subdocumentField: DynamicObjectKeys<T>, subdocumentId: string, user?: any) {
+  hardDeleteSubdocument(parentId: string, subdocumentField: DynamicObjectKeys<DataType>, subdocumentId: string, user?: UserType) {
     return this.patchById(parentId, { $pull: { [subdocumentField]: { _id: subdocumentId } } }, user);
   }
 
-  list(filter: HintedFilter<T> = {}, limit?: number, skip?: number, projection?: string, sort?: ISortOptions): Promise<Array<M>> {
+  list(filter: HintedFilter<DataType> = {}, limit?: number, skip?: number, projection?: string, sort?: ISortOptions): Promise<Array<DocumentType>> {
     filter.deleted = filter.deleted !== undefined ? filter.deleted : this.deletedDefaultFilter();
     return this.model.find(filter, projection, { sort, skip, limit }).exec();
   }
 
   async listSubdocuments<DataModel extends object>(
     parentId: string,
-    subdocumentField: DynamicObjectKeys<T>,
+    subdocumentField: DynamicObjectKeys<DataType>,
     filter: HintedFilter<DataModel> = {},
     limit: number = 9999,
     skip: number = 0,
@@ -150,7 +159,7 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
       throw new ResourceNotFoundException(this.model.modelName, parentId);
     }
     const expression = `$${subdocumentField}`;
-    const aggregration: T[] = await this.model
+    const aggregration: DataType[] = await this.model
       .aggregate([
         { $match: { _id: parentId } },
         { $limit: 1 },
@@ -170,20 +179,20 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
     return aggregration.length > 0 ? (aggregration.pop()[subdocumentField as string] as Array<SubmodelType<DataModel>>) : [];
   }
 
-  async patch(filter: HintedFilter<T> = {}, update: HintedDynamicObject<T> = {}, user?: any): Promise<M> {
+  async patch(filter: HintedFilter<DataType> = {}, update: HintedDynamicObject<DataType> = {}, user?: UserType): Promise<DocumentType> {
     return this.update(filter, { $set: update }, user);
   }
 
-  async patchById(_id: string, update: HintedDynamicObject<T>, user?: any): Promise<M> {
+  async patchById(_id: string, update: HintedDynamicObject<DataType>, user?: UserType): Promise<DocumentType> {
     return this.patch({ _id: new ObjectId(_id) }, update, user);
   }
 
   async patchSubdocument<DataModel extends object>(
     parentId: string,
-    subdocumentField: DynamicObjectKeys<T>,
+    subdocumentField: DynamicObjectKeys<DataType>,
     filter: HintedFilter<DataModel> = {},
     update: HintedDynamicObject<DataModel>,
-    user?: any,
+    user?: UserType,
   ): Promise<SubmodelType<DataModel>> {
     const subdocument = await this.getSubdocument(parentId, subdocumentField, filter);
     if (!subdocument) {
@@ -197,19 +206,24 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
 
   async patchSubdocumentById<DataModel extends object>(
     parentId: string,
-    subdocumentField: DynamicObjectKeys<T>,
+    subdocumentField: DynamicObjectKeys<DataType>,
     subdocumentId: string,
     update: HintedDynamicObject<DataModel>,
-    user?: any,
+    user?: UserType,
   ) {
     return this.patchSubdocument<DataModel>(parentId, subdocumentField, { _id: new ObjectId(subdocumentId) }, update, user);
   }
 
-  async softDelete(_id: string, user?: any): Promise<M> {
+  async softDelete(_id: string, user?: UserType): Promise<DocumentType> {
     return this.patchById(_id, { deleted: true, deletedAt: this.now(), deletedBy: user }, user);
   }
 
-  async softDeleteSubdocument<DataModel extends object>(parentId: string, subdocumentField: DynamicObjectKeys<T>, subdocumentId: string, user?: any) {
+  async softDeleteSubdocument<DataModel extends object>(
+    parentId: string,
+    subdocumentField: DynamicObjectKeys<DataType>,
+    subdocumentId: string,
+    user?: UserType,
+  ) {
     return this.patchSubdocumentById<DataModel>(
       parentId,
       subdocumentField,
@@ -219,7 +233,11 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
     );
   }
 
-  async update(filter: HintedFilter<T> = {}, update: HintedDynamicObject<T> & { $set?: any } = {}, user?: any): Promise<M> {
+  async update(
+    filter: HintedFilter<DataType> = {},
+    update: HintedDynamicObject<DataType> & { $set?: any } = {},
+    user?: UserType,
+  ): Promise<DocumentType> {
     update.$set = update.$set ? Object.assign(this.getDefaultUpdate(user), update.$set) : this.getDefaultUpdate(user);
     const conditions = Object.assign({ deleted: this.deletedDefaultFilter() }, filter);
     const instance = await this.model.findOneAndUpdate(conditions, update, { new: true }).exec();
@@ -230,7 +248,7 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
     return instance;
   }
 
-  async updateById(_id: string, update: HintedDynamicObject<T> = {}, user?: any): Promise<M> {
+  async updateById(_id: string, update: HintedDynamicObject<DataType> = {}, user?: UserType): Promise<DocumentType> {
     return this.update({ _id: new ObjectId(_id) }, update, user);
   }
 
@@ -265,7 +283,7 @@ export class GenericMongooseCrudService<T extends object, M extends ModelType<T>
     return finalUpdate;
   }
 
-  protected getDefaultUpdate(user?: any): IDynamicObject {
+  protected getDefaultUpdate(user?: UserType): IDynamicObject {
     return {
       updatedAt: this.now(),
       updatedBy: user,
