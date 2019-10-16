@@ -27,9 +27,9 @@ export interface IMongoDocument extends Document, IModelInstance {}
 
 export type SortValue = -1 | 1;
 
-export type ProjectionOptions<T extends object = object>  = { [key in keyof T]: SortValue } | { [key: string]: SortValue };
+export type ProjectionOptions<T extends object = object> = { [key in keyof T]: SortValue } | { [key: string]: SortValue };
 
-export type SortOptions<T extends object = object>  = { [key in keyof T]: SortValue } | { [key: string]: SortValue };
+export type SortOptions<T extends object = object> = { [key in keyof T]: SortValue } | { [key: string]: SortValue };
 
 export type ModelType<T extends object> = T & IMongoDocument;
 
