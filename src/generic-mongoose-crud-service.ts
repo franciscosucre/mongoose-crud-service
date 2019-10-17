@@ -37,7 +37,7 @@ export class GenericMongooseCrudService<
     subdocumentField: ArrayTypeKeys<DataType>,
     subdocument: DataModel,
     user?: UserType,
-  ) {
+  ): Promise<SubmodelType<DataModel>> {
     const instance = await this.updateById(
       parentId,
       { $push: { [subdocumentField]: { ...subdocument, createdAt: moment.utc().toDate(), createdBy: user } as DataModel } },
@@ -55,7 +55,7 @@ export class GenericMongooseCrudService<
     parentId: string | ObjectId,
     subdocumentField: ArrayTypeKeys<DataType>,
     filter: HintedFilter<DataModel> = {},
-  ) {
+  ): Promise<number> {
     const matches = await this.model.countDocuments({ _id: parentId, deleted: this.deletedDefaultFilter() }).exec();
     if (matches <= 0) {
       throw new ResourceNotFoundException(this.model.modelName, parentId.toString());
@@ -137,8 +137,24 @@ export class GenericMongooseCrudService<
     return instance;
   }
 
-  hardDeleteSubdocument(parentId: string | ObjectId, subdocumentField: ArrayTypeKeys<DataType>, subdocumentId: string | ObjectId, user?: UserType) {
-    return this.patchById(parentId, { $pull: { [subdocumentField]: { _id: subdocumentId } } }, user);
+  async hardDeleteSubdocument<DataModel extends object>(
+    parentId: string | ObjectId,
+    subdocumentField: ArrayTypeKeys<DataType>,
+    filter: HintedFilter<DataModel> = {},
+    user?: UserType,
+  ): Promise<SubmodelType<DataModel>> {
+    const subdocument = await this.getSubdocument<DataModel>(parentId, subdocumentField, filter);
+    await this.patchById(parentId, { $pull: { [subdocumentField]: { _id: subdocument._id } } }, user);
+    return subdocument;
+  }
+
+  hardDeleteSubdocumentById<DataModel extends object>(
+    parentId: string | ObjectId,
+    subdocumentField: ArrayTypeKeys<DataType>,
+    subdocumentId: string | ObjectId,
+    user?: UserType,
+  ): Promise<SubmodelType<DataModel>> {
+    return this.hardDeleteSubdocument<DataModel>(parentId, subdocumentField, { _id: subdocumentId }, user);
   }
 
   list(
@@ -221,7 +237,7 @@ export class GenericMongooseCrudService<
     subdocumentId: string | ObjectId,
     update: HintedDynamicObject<DataModel>,
     user?: UserType,
-  ) {
+  ): Promise<SubmodelType<DataModel>> {
     return this.patchSubdocument<DataModel>(parentId, subdocumentField, { _id: new ObjectId(subdocumentId) }, update, user);
   }
 
@@ -234,7 +250,7 @@ export class GenericMongooseCrudService<
     subdocumentField: ArrayTypeKeys<DataType>,
     subdocumentId: string | ObjectId,
     user?: UserType,
-  ) {
+  ): Promise<SubmodelType<DataModel>> {
     return this.patchSubdocumentById<DataModel>(
       parentId,
       subdocumentField,
@@ -263,7 +279,7 @@ export class GenericMongooseCrudService<
     return this.update({ _id: new ObjectId(_id) }, update, user);
   }
 
-  protected deletedDefaultFilter() {
+  protected deletedDefaultFilter(): { $ne: true } {
     return { $ne: true };
   }
 
