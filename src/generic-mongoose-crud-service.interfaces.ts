@@ -1,4 +1,5 @@
-import { Document, Types } from 'mongoose';
+import { ClientSession } from 'mongodb';
+import { Document, QueryFindOneAndUpdateOptions, Types } from 'mongoose';
 
 export interface IDynamicObject {
   [key: string]: any;
@@ -45,3 +46,9 @@ export type HintedFilter<T extends object> = { [key in keyof ISoftDeletable]: an
   { [key in keyof ITimestamped]: any } &
   { [key in keyof Partial<IMongoIdentified>]: any } &
   HintedDynamicObject<T>;
+
+export interface ITransactionable {
+  session: ClientSession;
+}
+
+export type UpdateOptions = Partial<QueryFindOneAndUpdateOptions & ITransactionable>;
