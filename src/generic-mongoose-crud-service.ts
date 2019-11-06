@@ -1,15 +1,14 @@
 import { ResourceNotFoundException } from '@aluxion-nestjs/exceptions';
 import { EventEmitter } from 'events';
 import * as moment from 'moment';
-import { ObjectId } from 'mongodb';
-import { ClientSession, Model, mongo, QueryFindOneAndUpdateOptions, SaveOptions, Types } from 'mongoose';
+import { Db, ObjectId, SessionOptions, WithTransactionCallback } from 'mongodb';
+import { ClientSession, Model, mongo, SaveOptions, Types } from 'mongoose';
 
 import {
   ArrayTypeKeys,
   HintedDynamicObject,
   HintedFilter,
   IDynamicObject,
-  ITransactionable,
   ModelType,
   ProjectionOptions,
   SortOptions,
@@ -22,6 +21,9 @@ export class GenericMongooseCrudService<
   DocumentType extends ModelType<DataType> = ModelType<DataType>,
   UserType extends object = object
 > {
+  get db(): Db {
+    return this.db;
+  }
   public readonly events: EventEmitter = new EventEmitter();
   protected readonly eventsCreate: string = 'CREATED';
   protected readonly eventsDelete: string = 'DELETED';
@@ -277,6 +279,10 @@ export class GenericMongooseCrudService<
     );
   }
 
+  startSession(options?: SessionOptions): Promise<ClientSession> {
+    return this.model.db.startSession(options);
+  }
+
   async update(
     filter: HintedFilter<DataType> = {},
     update: HintedDynamicObject<DataType> & { $set?: any } = {},
@@ -303,6 +309,16 @@ export class GenericMongooseCrudService<
     options?: Partial<UpdateOptions>,
   ): Promise<DocumentType> {
     return this.update({ _id: new ObjectId(_id) }, update, user, options);
+  }
+
+  async withTransaction<T = any>(fn: WithTransactionCallback<T>): Promise<T> {
+    const session = await this.startSession();
+    let result: T;
+    session.withTransaction(async (_session) => {
+      result = await fn(_session);
+      return result;
+    });
+    return result;
   }
 
   protected deletedDefaultFilter(): { $ne: true } {
