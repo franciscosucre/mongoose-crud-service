@@ -4,9 +4,9 @@ import * as mongoUnit from 'mongo-unit';
 import * as mongoose from 'mongoose';
 
 import { GenericMongooseCrudService } from './generic-mongoose-crud-service';
+import { DocumentNotFoundException } from './generic-mongoose-crud-service.exceptions';
 import { IModelInstance, IMongoDocument, SubmodelType } from './generic-mongoose-crud-service.interfaces';
 import { timestampedSchemaDefinition } from './generic-mongoose-crud-service.schemas';
-import { DocumentNotFoundException } from './generic-mongoose-crud-service.exceptions';
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000;
 
@@ -212,7 +212,7 @@ describe('GenericMongooseCrudService', () => {
           await service.getById(_id);
           return fail();
         } catch (error) {
-          return expect(error).toBeInstanceOf(DocumentNotFoundException)
+          return expect(error).toBeInstanceOf(DocumentNotFoundException);
         }
       });
 
@@ -223,7 +223,7 @@ describe('GenericMongooseCrudService', () => {
           await service.getById(_id);
           return fail();
         } catch (error) {
-          return expect(error).toBeInstanceOf(DocumentNotFoundException)
+          return expect(error).toBeInstanceOf(DocumentNotFoundException);
         }
       });
     });
@@ -251,7 +251,7 @@ describe('GenericMongooseCrudService', () => {
           await service.patchById(_id, { value: newName }, generateUserData());
           return fail();
         } catch (error) {
-          return expect(error).toBeInstanceOf(DocumentNotFoundException)
+          return expect(error).toBeInstanceOf(DocumentNotFoundException);
         }
       });
 
@@ -262,7 +262,7 @@ describe('GenericMongooseCrudService', () => {
           await service.patchById(_id, { value: newName }, generateUserData());
           return fail();
         } catch (error) {
-          return expect(error).toBeInstanceOf(DocumentNotFoundException)
+          return expect(error).toBeInstanceOf(DocumentNotFoundException);
         }
       });
     });
@@ -290,7 +290,7 @@ describe('GenericMongooseCrudService', () => {
           await service.softDelete(_id, generateUserData());
           return fail();
         } catch (error) {
-          return expect(error).toBeInstanceOf(DocumentNotFoundException)
+          return expect(error).toBeInstanceOf(DocumentNotFoundException);
         }
       });
 
@@ -301,7 +301,7 @@ describe('GenericMongooseCrudService', () => {
           await service.softDelete(_id, generateUserData());
           return fail();
         } catch (error) {
-          return expect(error).toBeInstanceOf(DocumentNotFoundException)
+          return expect(error).toBeInstanceOf(DocumentNotFoundException);
         }
       });
     });
