@@ -3,10 +3,10 @@ import * as moment from 'moment';
 import * as mongoUnit from 'mongo-unit';
 import * as mongoose from 'mongoose';
 
-import { GenericMongooseCrudService } from './generic-mongoose-crud-service';
-import { DocumentNotFoundException } from './generic-mongoose-crud-service.exceptions';
-import { IModelInstance, IMongoDocument, SubmodelType } from './generic-mongoose-crud-service.interfaces';
-import { timestampedSchemaDefinition } from './generic-mongoose-crud-service.schemas';
+import { DocumentNotFoundException } from './exceptions';
+import { IModelInstance, IMongoDocument, SubmodelType } from './interfaces';
+import { timestampedSchemaDefinition } from './schemas';
+import { GenericMongooseCrudService } from './service';
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000;
 
@@ -113,31 +113,31 @@ describe('GenericMongooseCrudService', () => {
         return expect(instances.length).toBe(10);
       });
 
-      it('should return only the patients set on limit', async () => {
+      it('should return only the instances set on limit', async () => {
         await model.create(generateRandomTestData(10));
         const instances = await service.list({}, 3);
         return expect(instances.length).toBe(3);
       });
 
-      it('should paginate the patients', async () => {
+      it('should paginate the instances', async () => {
         await model.create(generateRandomTestData(10));
         const [first] = await service.list({}, 1, 0);
         const [second] = await service.list({}, 1, 1);
         return expect(first._id.toString()).not.toEqual(second._id.toString());
       });
 
-      it('should filter the patients with the given query', async () => {
+      it('should filter the instances with the given query', async () => {
         const [instance] = await model.create(generateRandomTestData(10));
-        const patients = await service.list({ value: instance.value });
-        expect(patients.length).toEqual(1);
-        return expect(patients.pop().id).toEqual(instance.id);
+        const instances = await service.list({ value: instance.value });
+        expect(instances.length).toEqual(1);
+        return expect(instances.pop().id).toEqual(instance.id);
       });
 
-      it('should show only non deleted patients', async () => {
+      it('should show only non deleted instances', async () => {
         await model.create(generateTestData({ deleted: true }));
         await model.create(generateRandomTestData(9));
-        const patients = await service.list();
-        return expect(patients.length).toEqual(9);
+        const instances = await service.list();
+        return expect(instances.length).toEqual(9);
       });
     });
 
@@ -157,13 +157,13 @@ describe('GenericMongooseCrudService', () => {
         return expect(count).toEqual(10);
       });
 
-      it('should filter the patients with the given query', async () => {
+      it('should filter the instances with the given query', async () => {
         const [instance] = await model.create(generateRandomTestData(10));
         const count = await service.count({ value: instance.value });
         return expect(count).toEqual(1);
       });
 
-      it('should count only non deleted patients', async () => {
+      it('should count only non deleted instances', async () => {
         await model.create(generateTestData({ deleted: true }));
         await model.create(generateRandomTestData(9));
         const count = await service.count();
@@ -391,9 +391,9 @@ describe('GenericMongooseCrudService', () => {
 
       it('should add the sub', async () => {
         const sub = await service.addSubdocument<ITestSubData>(instance._id, subdocumentField, generateTestSubData(), generateUserData());
-        const newPatient = await model.findById(instance._id, 'subs').exec();
-        expect(newPatient.subs.length).toEqual(instance.subs.length + 1);
-        expect(newPatient.subs.find((r) => r._id.toString() === sub._id.toString())).toBeTruthy();
+        const newInstance = await model.findById(instance._id, 'subs').exec();
+        expect(newInstance.subs.length).toEqual(instance.subs.length + 1);
+        expect(newInstance.subs.find((r) => r._id.toString() === sub._id.toString())).toBeTruthy();
       });
     });
 
@@ -407,12 +407,12 @@ describe('GenericMongooseCrudService', () => {
 
       it('should get the subdocument', async () => {
         const expectedRepresentative = instance.subs[0];
-        const receivedRepresentative = await service.getSubdocumentById(
+        const receivedSubDoc = await service.getSubdocumentById(
           instance._id.toString(),
           subdocumentField,
           expectedRepresentative._id.toString(),
         );
-        expect(expectedRepresentative._id.toString()).toEqual(receivedRepresentative._id.toString());
+        expect(expectedRepresentative._id.toString()).toEqual(receivedSubDoc._id.toString());
       });
     });
 
@@ -425,7 +425,7 @@ describe('GenericMongooseCrudService', () => {
 
       it('should patch the subdocument', async () => {
         const sub: SubmodelType<ITestSubData> = faker.random.arrayElement(instance.subs);
-        const receivedRep: SubmodelType<ITestSubData> = await service.patchSubdocumentById<ITestSubData>(
+        const receivedSubDoc: SubmodelType<ITestSubData> = await service.patchSubdocumentById<ITestSubData>(
           instance._id,
           subdocumentField,
           sub._id,
@@ -433,9 +433,9 @@ describe('GenericMongooseCrudService', () => {
           generateUserData(),
         );
         const persistedSub = await service.getSubdocumentById<ITestSubData>(instance._id, subdocumentField, sub._id);
-        expect(receivedRep.msg).not.toEqual(sub.msg);
-        expect(receivedRep.id).toEqual(sub.id);
-        expect(receivedRep.msg).toEqual(persistedSub.msg);
+        expect(receivedSubDoc.msg).not.toEqual(sub.msg);
+        expect(receivedSubDoc.id).toEqual(sub.id);
+        expect(receivedSubDoc.msg).toEqual(persistedSub.msg);
       });
     });
 

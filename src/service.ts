@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import { Db, ObjectId, SessionOptions, WithTransactionCallback } from 'mongodb';
 import { ClientSession, Model, mongo, SaveOptions, Types } from 'mongoose';
 
-import { DocumentNotFoundException, DuplicateKeyException } from './generic-mongoose-crud-service.exceptions';
+import { DocumentNotFoundException, DuplicateKeyException } from './exceptions';
 import {
   ArrayTypeKeys,
   HintedDynamicObject,
@@ -13,7 +13,7 @@ import {
   SortOptions,
   SubmodelType,
   UpdateOptions,
-} from './generic-mongoose-crud-service.interfaces';
+} from './interfaces';
 
 export class GenericMongooseCrudService<
   DataType extends object = object,

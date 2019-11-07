@@ -1,3 +1,4 @@
-export * from './generic-mongoose-crud-service';
-export * from './generic-mongoose-crud-service.interfaces';
-export * from './generic-mongoose-crud-service.schemas';
+export * from './exceptions';
+export * from './service';
+export * from './interfaces';
+export * from './schemas';
