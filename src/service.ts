@@ -315,7 +315,7 @@ export class GenericMongooseCrudService<
   async withTransaction<T = any>(fn: WithTransactionCallback<T>): Promise<T> {
     const session = await this.startSession();
     let result: T;
-    session.withTransaction(async (_session) => {
+    await session.withTransaction(async (_session) => {
       result = await fn(_session);
       return result;
     });
