@@ -407,11 +407,7 @@ describe('GenericMongooseCrudService', () => {
 
       it('should get the subdocument', async () => {
         const expectedRepresentative = instance.subs[0];
-        const receivedSubDoc = await service.getSubdocumentById(
-          instance._id.toString(),
-          subdocumentField,
-          expectedRepresentative._id.toString(),
-        );
+        const receivedSubDoc = await service.getSubdocumentById(instance._id.toString(), subdocumentField, expectedRepresentative._id.toString());
         expect(expectedRepresentative._id.toString()).toEqual(receivedSubDoc._id.toString());
       });
     });
