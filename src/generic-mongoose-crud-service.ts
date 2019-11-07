@@ -1,9 +1,8 @@
-import { ResourceNotFoundException } from '@aluxion-nestjs/exceptions';
 import { EventEmitter } from 'events';
-import * as moment from 'moment';
 import { Db, ObjectId, SessionOptions, WithTransactionCallback } from 'mongodb';
 import { ClientSession, Model, mongo, SaveOptions, Types } from 'mongoose';
 
+import { DocumentNotFoundException, DuplicateKeyException } from './generic-mongoose-crud-service.exceptions';
 import {
   ArrayTypeKeys,
   HintedDynamicObject,
@@ -45,7 +44,7 @@ export class GenericMongooseCrudService<
   ): Promise<SubmodelType<DataModel>> {
     const instance = await this.updateById(
       parentId,
-      { $push: { [subdocumentField]: { ...subdocument, createdAt: moment.utc().toDate(), createdBy: user } as DataModel } },
+      { $push: { [subdocumentField]: { ...subdocument, createdAt: this.now(), createdBy: user } as DataModel } },
       user,
       options,
     );
@@ -64,7 +63,7 @@ export class GenericMongooseCrudService<
   ): Promise<number> {
     const matches = await this.model.countDocuments({ _id: parentId, deleted: this.deletedDefaultFilter() }).exec();
     if (matches <= 0) {
-      throw new ResourceNotFoundException(this.model.modelName, parentId.toString());
+      throw new DocumentNotFoundException(this.model.modelName, parentId.toString());
     }
     if (filter.deleted === undefined) {
       filter.deleted = this.deletedDefaultFilter();
@@ -88,8 +87,8 @@ export class GenericMongooseCrudService<
   }
 
   async create(data: DataType, user?: UserType, options: SaveOptions = {}): Promise<DocumentType> {
-    const instance = new this.model({ ...data, createdAt: moment.utc().toDate(), createdBy: user });
-    await instance.save(options);
+    const instance = new this.model({ ...data, createdAt: this.now(), createdBy: user });
+    await this.handleMongoError(() => instance.save(options));
     this.events.emit(this.eventsCreate, instance);
     return instance;
   }
@@ -98,7 +97,7 @@ export class GenericMongooseCrudService<
     const conditions = Object.assign({ deleted: this.deletedDefaultFilter() }, filter);
     const instance = await this.model.findOne(conditions, projection).exec();
     if (!instance) {
-      throw new ResourceNotFoundException(this.model.modelName, JSON.stringify(conditions));
+      throw new DocumentNotFoundException(this.model.modelName, JSON.stringify(conditions));
     }
     return instance;
   }
@@ -125,7 +124,7 @@ export class GenericMongooseCrudService<
       )
       .exec();
     if (!instance) {
-      throw new ResourceNotFoundException(this.model.modelName, parentId.toString());
+      throw new DocumentNotFoundException(this.model.modelName, parentId.toString());
     }
     return instance[subdocumentField as string].pop() as SubmodelType<DataModel>;
   }
@@ -195,7 +194,7 @@ export class GenericMongooseCrudService<
     const transformedFilter = this.formatQueryForAggregation(filter, subdocumentField as string);
     const matches = await this.model.countDocuments({ _id: parentId, deleted: this.deletedDefaultFilter() }).exec();
     if (matches <= 0) {
-      throw new ResourceNotFoundException(this.model.modelName, parentId.toString());
+      throw new DocumentNotFoundException(this.model.modelName, parentId.toString());
     }
     const expression = `$${subdocumentField}`;
     const aggregration: DataType[] = await this.model
@@ -241,7 +240,7 @@ export class GenericMongooseCrudService<
   ): Promise<SubmodelType<DataModel>> {
     const subdocument = await this.getSubdocument(parentId, subdocumentField, filter);
     if (!subdocument) {
-      throw new ResourceNotFoundException(subdocumentField as string, JSON.stringify(filter));
+      throw new DocumentNotFoundException(subdocumentField as string, JSON.stringify(filter));
     }
     const finalConditions = { _id: new ObjectId(parentId), [`${subdocumentField}._id`]: subdocument._id };
     const document = await this.patch(finalConditions, this.formatUpdateForSubdocuments(update, subdocumentField as string), user, options);
@@ -291,12 +290,14 @@ export class GenericMongooseCrudService<
   ): Promise<DocumentType> {
     update.$set = update.$set ? Object.assign(this.getDefaultUpdate(user), update.$set) : this.getDefaultUpdate(user);
     const conditions = Object.assign({ deleted: this.deletedDefaultFilter() }, filter);
-    const instance = await this.model
-      .findOneAndUpdate(conditions, update, Object.assign({ new: true }, options))
-      .session(options.session)
-      .exec();
+    const instance = await this.handleMongoError(async () =>
+      this.model
+        .findOneAndUpdate(conditions, update, Object.assign({ new: true }, options))
+        .session(options.session)
+        .exec(),
+    );
     if (!instance) {
-      throw new ResourceNotFoundException(this.model.modelName, JSON.stringify(conditions));
+      throw new DocumentNotFoundException(this.model.modelName, JSON.stringify(conditions));
     }
     this.events.emit(this.eventsPatch, instance);
     return instance;
@@ -359,6 +360,17 @@ export class GenericMongooseCrudService<
     };
   }
 
+  protected handleMongoError(callback: Function) {
+    try {
+      return callback();
+    } catch (error) {
+      if (error.code === 11000) {
+        throw new DuplicateKeyException(error);
+      }
+      throw error;
+    }
+  }
+
   protected merge<Input = object>(doc: Input, newDoc: Partial<Input>): Input {
     for (const key of Object.keys(newDoc)) {
       doc[key] = newDoc[key];
@@ -367,6 +379,6 @@ export class GenericMongooseCrudService<
   }
 
   protected now(): Date {
-    return moment.utc().toDate();
+    return new Date();
   }
 }

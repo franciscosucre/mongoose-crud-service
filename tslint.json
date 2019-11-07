@@ -26,7 +26,8 @@
     "no-empty-interface": false,
     "no-empty": false,
     "variable-name": { "options": ["allow-leading-underscore", "allow-pascal-case"] },
-    "object-literal-key-quotes": { "options": "as-needed" }
+    "object-literal-key-quotes": { "options": "as-needed" },
+    "max-classes-per-file": false
   },
   "rulesDirectory": []
 }

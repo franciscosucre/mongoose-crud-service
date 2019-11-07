@@ -23,20 +23,20 @@
     "version": "npm run format && git add -A src",
     "postversion": "git push && git push --tags"
   },
-  "dependencies": {
-    "@aluxion-nestjs/exceptions": "0.0.3",
-    "@types/mongoose": "^5.5.17",
-    "moment": "^2.24.0",
-    "mongoose": "^5.7.0",
-    "reflect-metadata": "^0.1.13"
+  "dependencies": {},
+  "peerDependencies": {
+    "@types/mongoose": "^5.*"
   },
   "devDependencies": {
     "@types/faker": "^4.1.5",
     "@types/jest": "^24.0.18",
+    "@types/mongoose": "^5.5.17",
     "faker": "^4.1.0",
     "jasmine": "^3.4.0",
     "jest": "^24.8.0",
+    "moment": "^2.24.0",
     "mongo-unit": "^1.4.5",
+    "mongoose": "^5.7.8",
     "prettier": "^1.18.2",
     "prettier-tslint": "^0.4.2",
     "rimraf": "^3.0.0",
