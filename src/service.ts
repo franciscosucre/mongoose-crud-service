@@ -96,7 +96,7 @@ export class GenericMongooseCrudService<
   }
 
   async create(params: ICreateParams<ModelType, UserType>): Promise<DocumentType> {
-    const { data= {}, options, user } = params;
+    const { data = {}, options, user } = params;
     const instance = new this.model({ ...data, createdAt: this.now(), createdBy: user });
     await this.handleMongoError(() => instance.save(options));
     this.events.emit(this.eventsCreate, instance);
