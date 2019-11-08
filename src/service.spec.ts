@@ -115,20 +115,20 @@ describe('GenericMongooseCrudService', () => {
 
       it('should return only the instances set on limit', async () => {
         await model.create(generateRandomTestData(10));
-        const instances = await service.list({}, 3);
+        const instances = await service.list({ limit: 3 });
         return expect(instances.length).toBe(3);
       });
 
       it('should paginate the instances', async () => {
         await model.create(generateRandomTestData(10));
-        const [first] = await service.list({}, 1, 0);
-        const [second] = await service.list({}, 1, 1);
+        const [first] = await service.list({ limit: 1, skip: 0 });
+        const [second] = await service.list({ limit: 1, skip: 1 });
         return expect(first._id.toString()).not.toEqual(second._id.toString());
       });
 
       it('should filter the instances with the given query', async () => {
         const [instance] = await model.create(generateRandomTestData(10));
-        const instances = await service.list({ value: instance.value });
+        const instances = await service.list({ filter: { value: instance.value } });
         expect(instances.length).toEqual(1);
         return expect(instances.pop().id).toEqual(instance.id);
       });
@@ -177,7 +177,7 @@ describe('GenericMongooseCrudService', () => {
       });
 
       it('should create a MongoDB document', async () => {
-        const instance = await service.create(generateTestData(), generateUserData());
+        const instance = await service.create({ data: generateTestData(), user: generateUserData() });
         const [persistedInstance] = await model.find().exec();
         expect(instance._id.toString()).toEqual(persistedInstance._id.toString());
         return expect(instance._id).toEqual(persistedInstance._id);
@@ -199,7 +199,7 @@ describe('GenericMongooseCrudService', () => {
       });
 
       it('should retrieve the instance only the _id field', async () => {
-        const retrievedInstance = await service.getById(instance._id, '_id');
+        const retrievedInstance = await service.getById({ _id: instance._id, projection: '_id' });
         expect(retrievedInstance._id.toString()).toEqual(instance._id.toString());
         expect(instance.value).toBeDefined();
         return expect(retrievedInstance.value).not.toBeDefined();
@@ -239,7 +239,7 @@ describe('GenericMongooseCrudService', () => {
       });
 
       it('should update the document', async () => {
-        const retrievedInstance = await service.patchById(instance._id, { value: newName }, generateUserData());
+        const retrievedInstance = await service.patchById({ _id: instance._id, update: { value: newName }, user: generateUserData() });
         expect(retrievedInstance.updatedAt.toISOString()).not.toEqual(instance.updatedAt.toISOString());
         return expect(retrievedInstance.value).not.toEqual(instance.value);
       });
@@ -248,7 +248,7 @@ describe('GenericMongooseCrudService', () => {
         const _id = instance._id;
         await model.deleteOne({ _id }).exec();
         try {
-          await service.patchById(_id, { value: newName }, generateUserData());
+          await service.patchById({ _id, update: { value: newName }, user: generateUserData() });
           return fail();
         } catch (error) {
           return expect(error).toBeInstanceOf(DocumentNotFoundException);
@@ -259,7 +259,7 @@ describe('GenericMongooseCrudService', () => {
         const _id = instance._id;
         await model.findByIdAndUpdate(_id, { $set: { deleted: true } }).exec();
         try {
-          await service.patchById(_id, { value: newName }, generateUserData());
+          await service.patchById({ _id, update: { value: newName }, user: generateUserData() });
           return fail();
         } catch (error) {
           return expect(error).toBeInstanceOf(DocumentNotFoundException);
@@ -276,7 +276,7 @@ describe('GenericMongooseCrudService', () => {
       });
 
       it('should soft delete the document', async () => {
-        const retrievedInstance = await service.softDelete(instance._id, generateUserData());
+        const retrievedInstance = await service.softDelete({ _id: instance._id, user: generateUserData() });
         expect(instance.deletedAt).not.toBeDefined();
         expect(retrievedInstance.deletedAt).toBeInstanceOf(Date);
         expect(retrievedInstance.deleted).toEqual(true);
@@ -287,7 +287,7 @@ describe('GenericMongooseCrudService', () => {
         const _id = instance._id;
         await model.deleteOne({ _id }).exec();
         try {
-          await service.softDelete(_id, generateUserData());
+          await service.softDelete({ _id, user: generateUserData() });
           return fail();
         } catch (error) {
           return expect(error).toBeInstanceOf(DocumentNotFoundException);
@@ -298,7 +298,7 @@ describe('GenericMongooseCrudService', () => {
         const _id = instance._id;
         await model.findByIdAndUpdate(_id, { deleted: true }).exec();
         try {
-          await service.softDelete(_id, generateUserData());
+          await service.softDelete({ _id, user: generateUserData() });
           return fail();
         } catch (error) {
           return expect(error).toBeInstanceOf(DocumentNotFoundException);
@@ -319,27 +319,27 @@ describe('GenericMongooseCrudService', () => {
       });
 
       it('should list a list of subdocuments', async () => {
-        const subs = await service.listSubdocuments(instance._id, subdocumentField);
+        const subs = await service.listSubdocuments<ITestSubData>({ parentId: instance._id, subdocumentField });
         expect(subs).toBeInstanceOf(Array);
         expect(subs.length).toEqual(instance.subs.length);
       });
 
       it('should filter the list of subdocuments', async () => {
         const sub = faker.random.arrayElement(instance.subs);
-        const subs = await service.listSubdocuments(instance._id, subdocumentField, { _id: sub._id });
+        const subs = await service.listSubdocuments<ITestSubData>({ parentId: instance._id, subdocumentField, filter: { _id: sub._id } });
         expect(subs).toBeInstanceOf(Array);
         expect(subs.length).toEqual(1);
       });
 
       it('should limit the results', async () => {
-        const subs = await service.listSubdocuments(instance._id, subdocumentField, {}, 5);
+        const subs = await service.listSubdocuments<ITestSubData>({ parentId: instance._id, subdocumentField, limit: 5 });
         expect(subs).toBeInstanceOf(Array);
         expect(subs.length).toEqual(5);
       });
 
       it('should paginate the results', async () => {
-        const first = (await service.listSubdocuments<ITestSubData>(instance._id, subdocumentField, {}, 1, 0)).pop();
-        const second = (await service.listSubdocuments<ITestSubData>(instance._id, subdocumentField, {}, 1, 1)).pop();
+        const first = (await service.listSubdocuments<ITestSubData>({ parentId: instance._id, subdocumentField, limit: 1, skip: 0 })).pop();
+        const second = (await service.listSubdocuments<ITestSubData>({ parentId: instance._id, subdocumentField, limit: 1, skip: 1 })).pop();
         expect(first.msg).not.toEqual(second.msg);
       });
 
@@ -355,7 +355,13 @@ describe('GenericMongooseCrudService', () => {
           }
         });
         const wanted = orderedRepresentatives[0];
-        const received = (await service.listSubdocuments<ITestSubData>(instance._id, subdocumentField, {}, 1, 0, { msg: 1 })).pop();
+        const received = (await service.listSubdocuments<ITestSubData>({
+          parentId: instance._id,
+          subdocumentField,
+          limit: 1,
+          skip: 0,
+          sort: { msg: 1 },
+        })).pop();
         expect(received.msg).toEqual(wanted.msg);
       });
     });
@@ -369,13 +375,17 @@ describe('GenericMongooseCrudService', () => {
       });
 
       it('should count the subdocuments', async () => {
-        const count = await service.countSubdocuments<ITestSubData>(instance._id, subdocumentField);
+        const count = await service.countSubdocuments<ITestSubData>({ parentId: instance._id, subdocumentField });
         expect(count).not.toBeNaN();
         expect(count).toEqual(instance.subs.length);
       });
 
       it('should count the subdocuments', async () => {
-        const count = await service.countSubdocuments<ITestSubData>(instance._id, subdocumentField, { _id: instance.subs[0]._id });
+        const count = await service.countSubdocuments<ITestSubData>({
+          parentId: instance._id,
+          subdocumentField,
+          filter: { _id: instance.subs[0]._id },
+        });
         expect(count).not.toBeNaN();
         expect(count).toEqual(1);
       });
@@ -390,7 +400,12 @@ describe('GenericMongooseCrudService', () => {
       });
 
       it('should add the sub', async () => {
-        const sub = await service.addSubdocument<ITestSubData>(instance._id, subdocumentField, generateTestSubData(), generateUserData());
+        const sub = await service.addSubdocument<ITestSubData>({
+          parentId: instance._id,
+          subdocumentField,
+          data: generateTestSubData(),
+          user: generateUserData(),
+        });
         const newInstance = await model.findById(instance._id, 'subs').exec();
         expect(newInstance.subs.length).toEqual(instance.subs.length + 1);
         expect(newInstance.subs.find((r) => r._id.toString() === sub._id.toString())).toBeTruthy();
@@ -407,7 +422,11 @@ describe('GenericMongooseCrudService', () => {
 
       it('should get the subdocument', async () => {
         const expectedRepresentative = instance.subs[0];
-        const receivedSubDoc = await service.getSubdocumentById(instance._id.toString(), subdocumentField, expectedRepresentative._id.toString());
+        const receivedSubDoc = await service.getSubdocumentById({
+          parentId: instance._id.toString(),
+          subdocumentField,
+          subdocumentId: expectedRepresentative._id.toString(),
+        });
         expect(expectedRepresentative._id.toString()).toEqual(receivedSubDoc._id.toString());
       });
     });
@@ -421,14 +440,14 @@ describe('GenericMongooseCrudService', () => {
 
       it('should patch the subdocument', async () => {
         const sub: SubmodelType<ITestSubData> = faker.random.arrayElement(instance.subs);
-        const receivedSubDoc: SubmodelType<ITestSubData> = await service.patchSubdocumentById<ITestSubData>(
-          instance._id,
+        const receivedSubDoc: SubmodelType<ITestSubData> = await service.patchSubdocumentById<ITestSubData>({
+          parentId: instance._id,
           subdocumentField,
-          sub._id,
-          { msg: 'msg' },
-          generateUserData(),
-        );
-        const persistedSub = await service.getSubdocumentById<ITestSubData>(instance._id, subdocumentField, sub._id);
+          subdocumentId: sub._id,
+          update: { msg: 'msg' },
+          user: generateUserData(),
+        });
+        const persistedSub = await service.getSubdocumentById<ITestSubData>({ parentId: instance._id, subdocumentField, subdocumentId: sub._id });
         expect(receivedSubDoc.msg).not.toEqual(sub.msg);
         expect(receivedSubDoc.id).toEqual(sub.id);
         expect(receivedSubDoc.msg).toEqual(persistedSub.msg);
