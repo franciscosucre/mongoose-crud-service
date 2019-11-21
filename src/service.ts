@@ -296,8 +296,8 @@ export class GenericMongooseCrudService<
     return this.update({ filter: { _id: new ObjectId(_id) }, update, user, options });
   }
 
-  async withTransaction<T = any>(fn: WithTransactionCallback<T>): Promise<T> {
-    const session = await this.startSession();
+  async withTransaction<T = any>(fn: WithTransactionCallback<T>, sessionOptions?: SessionOptions): Promise<T> {
+    const session = await this.startSession(sessionOptions);
     let result: T;
     await session.withTransaction(async (_session) => {
       result = await fn(_session);
