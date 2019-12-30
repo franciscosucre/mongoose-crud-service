@@ -177,6 +177,12 @@ export class GenericMongooseCrudService<
     return this.model.find(filter, projection, { sort, skip, limit }).exec();
   }
 
+  async listAndCount(params: IListParams<ModelType> = {}): Promise<{ count: number; data: Array<DocumentType> }> {
+    const { filter = {} } = params;
+    const [data, count] = await Promise.all([this.list(params), this.count(filter)]);
+    return { data, count };
+  }
+
   async listSubdocuments<SubdocumentType extends object>(
     params: IListSubdocuments<ModelType, SubdocumentType>,
   ): Promise<Array<SubmodelType<SubdocumentType>>> {
@@ -299,7 +305,7 @@ export class GenericMongooseCrudService<
   async withTransaction<T = any>(fn: WithTransactionCallback<T>, sessionOptions?: SessionOptions): Promise<T> {
     const session = await this.startSession(sessionOptions);
     let result: T;
-    await session.withTransaction(async (_session) => {
+    await session.withTransaction(async _session => {
       result = await fn(_session);
       return result;
     });
