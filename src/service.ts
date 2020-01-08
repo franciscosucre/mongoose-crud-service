@@ -265,7 +265,7 @@ export class GenericMongooseCrudService<
     return this.patchById({ _id, update: { deleted: true, deletedAt: this.now(), deletedBy: user }, user, options });
   }
 
-  async softDeleteSubdocument<SubdocumentType extends object>(params: ISoftDeleteSubdocumentParams): Promise<SubmodelType<SubdocumentType>> {
+  async softDeleteSubdocument<SubdocumentType extends object>(params: ISoftDeleteSubdocumentParams<ModelType, UserType>): Promise<SubmodelType<SubdocumentType>> {
     const { parentId, subdocumentField, subdocumentId, user } = params;
     return this.patchSubdocumentById<SubdocumentType>({
       parentId,
